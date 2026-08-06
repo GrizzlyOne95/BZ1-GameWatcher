@@ -308,7 +308,7 @@
         <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: parsedStats}"></ng-container>
     </div>
 
-    <div class="detail-section">
+    <div class="detail-section" *ngIf="!lobby.isChat">
         <h5>API-reported stats</h5>
         <ng-container *ngIf="lobby.apiStats as apiStats; else noApiStats">
             <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: apiStats}"></ng-container>
