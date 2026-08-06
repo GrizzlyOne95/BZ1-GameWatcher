@@ -1,16 +1,22 @@
 # Vehicle thumbnails
 
-This directory is populated by `tools/fetch-battlezone-wiki-renders.py`.
+The optimized thumbnails in this directory are committed repository assets and are served by the
+Game Watcher itself from `/vehicles/*`. Production builds do **not** contact the Battlezone Wiki.
+If Fandom or the wiki is unavailable, existing deployments and future clean deployments continue to
+use the last reviewed render set stored here.
 
-The importer downloads small identification thumbnails from the Battlezone Wiki's **Battlezone
-(1998) Renders** category and writes `manifest.json`. Render filenames generally mirror stock ODF
-names (`Avtank render.png` -> `avtank`), so the ODF catalog generator can associate an exact craft
-or inherit the nearest pictured `baseName`.
+`tools/fetch-battlezone-wiki-renders.py` is an explicit maintenance utility. It downloads reduced-size
+identification renders, writes each successful download into this directory, and updates
+`manifest.json`. A failed or partial refresh preserves every previously committed image and manifest
+entry rather than replacing it with a broken external URL or `null`.
 
-Some useful renders are attached to individual vehicle pages but are not members of the main render
-category. Declare those in `wiki-overrides.json`. The Red Devil is the first example: lobby craft
-`bvrmpa` inherits from `bvrdev`, and `bvrdev` is explicitly associated with the wiki's
-`Bvrdev render.png` image.
+Render filenames generally mirror stock ODF names (`Avtank render.png` -> `avtank`), so the catalog
+can associate an exact craft or inherit the nearest pictured `baseName`. The importer scans both the
+base-game and The Red Odyssey render categories, which covers NSDF, CCA, Black Dog, and CRA craft.
+
+Some useful renders are attached to individual vehicle pages but are not members of those categories.
+Declare those in `wiki-overrides.json`. For example, the NSDF Rat Pack uses the otherwise uncategorized
+`Avapc render.png`, while Red Devil variants inherit from the `bvrdev` image.
 
 ## Source priority
 
@@ -33,20 +39,31 @@ save it as `/vehicles/<odf-code>.png`, and add a manifest entry whose `sourceUrl
 official PDF with a page fragment where supported, for example `...Manual.pdf#page=8`. Record the
 unit/page mapping during review rather than attempting blind automatic crops across every page.
 
-## Generate the catalog
+## Refresh the committed render set
 
-Run:
+The standard refresh is limited to ODF codes present in the generated stock catalog:
 
 ```bash
-python tools/fetch-battlezone-wiki-renders.py
-python tools/build-stock-vehicle-catalog.py /path/to/stock/odf
+python tools/fetch-battlezone-wiki-renders.py --force
+node Web/tools/generate-vehicle-images.mjs
+python tools/fetch-battlezone-wiki-renders.py --verify-only
 ```
 
 For a focused additive refresh:
 
 ```bash
-python tools/fetch-battlezone-wiki-renders.py --codes bvrdev avtank
+python tools/fetch-battlezone-wiki-renders.py --codes avapc cvhraz --force
 ```
+
+To inspect matches without downloading:
+
+```bash
+python tools/fetch-battlezone-wiki-renders.py --dry-run
+```
+
+The **Refresh vehicle renders** GitHub Actions workflow runs the same refresh and commits changed
+images, the manifest, and the generated TypeScript lookup. Normal application CI and Render deploys
+remain network-independent.
 
 The software license for this repository does **not** grant rights to third-party artwork. Battlezone
 renders and trademarks remain the property of their respective owners. The site uses reduced-size
