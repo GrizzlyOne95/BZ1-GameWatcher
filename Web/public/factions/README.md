@@ -1,7 +1,10 @@
 # Faction emblems
 
-Faction logo URLs and their attribution/source pages are recorded in `manifest.json`. The catalog
-maps the stock ODF prefixes as follows:
+The optimized faction emblems in this directory are served by the Game Watcher itself. Browser
+pages reference `/factions/*.svg`; Google Drive URLs are retained in `manifest.json` only as source
+and attribution links, never as image sources.
+
+The catalog maps the stock ODF prefixes as follows:
 
 - `av` — NSDF
 - `bv` — Black Dog
