@@ -1,21 +1,12 @@
 # syntax=docker/dockerfile:1
 
-# Cache reduced-size Battlezone Wiki renders inside the deploy image. This stage is best-effort:
-# an unavailable wiki must not prevent the lobby watcher itself from deploying.
-FROM python:3.12-alpine AS vehicle-assets
-WORKDIR /src
-COPY tools/fetch-battlezone-wiki-renders.py ./tools/
-COPY Web/public/vehicles/ ./Web/public/vehicles/
-RUN python tools/fetch-battlezone-wiki-renders.py --force \
-    || echo "warning: vehicle render refresh failed; building with the checked-in manifest"
-
-# Build the Angular production bundle.
+# Build the Angular production bundle. Vehicle renders are checked-in static assets under
+# Web/public/vehicles, so deploys never depend on the Battlezone Wiki being reachable.
 FROM node:22-alpine AS web-build
 WORKDIR /src/Web
 COPY Web/package.json Web/package-lock.json ./
 RUN npm ci
 COPY Web/ ./
-COPY --from=vehicle-assets /src/Web/public/vehicles/ ./public/vehicles/
 RUN npm run build
 
 # Publish the ASP.NET Core API.
