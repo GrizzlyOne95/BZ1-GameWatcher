@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: bz1-gamewatcher
+    runtime: docker
+    plan: free
+    region: ohio
+    dockerfilePath: ./Dockerfile.render
+    autoDeployTrigger: checksPass
+    healthCheckPath: /api/health
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Steam__ApiKey
+        sync: false
