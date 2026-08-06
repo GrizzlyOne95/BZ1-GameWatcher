@@ -12,3 +12,21 @@ services:
         value: Production
       - key: Steam__ApiKey
         sync: false
+      - key: LobbyBot__Enabled
+        value: "false"
+      - key: LobbyBot__PlayerName
+        value: BZ1 Game Watcher
+      - key: LobbyBot__LobbyName
+        value: ""
+      - key: LobbyBot__AutoClaim
+        value: "false"
+      - key: LobbyBot__MemberLimit
+        value: "8"
+      - key: LobbyBot__WelcomeMessage
+        value: ""
+      - key: LobbyBot__WelcomeCooldown
+        value: "00:01:00"
+      - key: LobbyBot__AnnouncementMessage
+        value: ""
+      - key: LobbyBot__AnnouncementInterval
+        value: "00:05:00"
