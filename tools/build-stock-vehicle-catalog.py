@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Generate the Angular stock-vehicle catalog from a directory of Battlezone ODF files.
+"""Generate the Angular stock-vehicle catalog from Battlezone ODF files.
 
 Usage:
-    python tools/build-stock-vehicle-catalog.py /path/to/stock/odf \
-        --output Web/src/app/data/stock-vehicles.generated.ts
+    python tools/fetch-battlezone-wiki-renders.py
+    python tools/build-stock-vehicle-catalog.py /path/to/stock/odf
 
-ODF keys are case-insensitive. Values inherited through GameObjectClass.baseName are resolved from
-oldest ancestor to leaf, with the leaf overriding inherited properties. Cycles and missing bases are
-reported instead of silently producing misleading data.
+ODF keys are case-insensitive. GameObjectClass values are inherited through baseName from the oldest
+ancestor to the leaf. A craft uses its exact wiki render when available, otherwise the nearest base
+ODF render from Web/public/vehicles/manifest.json. Unknown and modded craft remain uncatalogued.
 """
 
 from __future__ import annotations
@@ -33,24 +33,20 @@ VEHICLE_CLASS_LABELS = {
     "recycler",
     "factory",
     "armory",
+    "artillery",
+    "bomber",
+    "commvehicle",
+    "constructionrig",
+    "craft",
+    "deployable",
+    "howitzer",
+    "minelayer",
+    "person",
+    "repair",
+    "service",
+    "tank",
+    "trackedvehicle",
 }
-
-CATALOG_KEYS = (
-    "basename",
-    "classlabel",
-    "scrapvalue",
-    "scrapcost",
-    "buildtime",
-    "maxhealth",
-    "maxammo",
-    "unitname",
-    "ainame",
-    "ainame2",
-    "heatsignature",
-    "imagesignature",
-    "radarsignature",
-    "weaponmask",
-)
 
 
 @dataclass(frozen=True)
@@ -82,8 +78,8 @@ def parse_odf(path: Path) -> Odf:
     sections: dict[str, dict[str, str]] = {}
 
     for raw_line in read_text(path).splitlines():
-        line = raw_line.split("//", 1)[0].strip()
-        if not line or line.startswith(";"):
+        line = raw_line.split("//", 1)[0].split(";", 1)[0].strip()
+        if not line:
             continue
 
         section_match = SECTION_RE.match(line)
@@ -94,25 +90,20 @@ def parse_odf(path: Path) -> Odf:
 
         property_match = PROPERTY_RE.match(line)
         if property_match and current_section:
-            key = property_match.group(1).strip().lower()
-            value = unquote(property_match.group(2).strip())
-            sections[current_section][key] = value
+            sections[current_section][property_match.group(1).strip().lower()] = unquote(
+                property_match.group(2)
+            )
 
-    return Odf(
-        code=path.stem.lower(),
-        path=path,
-        game_object=sections.get("gameobjectclass", {}),
-    )
+    return Odf(path.stem.lower(), path, sections.get("gameobjectclass", {}))
 
 
 def load_odfs(root: Path) -> dict[str, Odf]:
     odfs: dict[str, Odf] = {}
     for path in sorted(root.rglob("*.odf"), key=lambda item: str(item).lower()):
         odf = parse_odf(path)
-        existing = odfs.get(odf.code)
-        if existing:
+        if odf.code in odfs:
             print(
-                f"warning: duplicate {odf.code}.odf; keeping {existing.path}, ignoring {path}",
+                f"warning: duplicate {odf.code}.odf; keeping {odfs[odf.code].path}, ignoring {path}",
                 file=sys.stderr,
             )
             continue
@@ -121,7 +112,7 @@ def load_odfs(root: Path) -> dict[str, Odf]:
 
 
 def inheritance_chain(code: str, odfs: dict[str, Odf]) -> list[Odf]:
-    chain: list[Odf] = []
+    leaf_to_root: list[Odf] = []
     seen: set[str] = set()
     current = code
 
@@ -132,27 +123,53 @@ def inheritance_chain(code: str, odfs: dict[str, Odf]) -> list[Odf]:
 
         odf = odfs.get(current)
         if odf is None:
-            if chain:
-                print(f"warning: {chain[-1].code} references missing base {current}", file=sys.stderr)
+            if leaf_to_root:
+                print(f"warning: {leaf_to_root[-1].code} references missing base {current}", file=sys.stderr)
                 break
             raise KeyError(code)
 
-        chain.append(odf)
+        leaf_to_root.append(odf)
         current = odf.game_object.get("basename", "").strip().lower().removesuffix(".odf")
 
-    chain.reverse()
-    return chain
+    return list(reversed(leaf_to_root))
 
 
-def resolve_game_object(code: str, odfs: dict[str, Odf]) -> dict[str, str]:
+def resolve_game_object(chain: list[Odf]) -> dict[str, str]:
     resolved: dict[str, str] = {}
-    for odf in inheritance_chain(code, odfs):
+    for odf in chain:
         resolved.update(odf.game_object)
     return resolved
 
 
+def load_image_manifest(path: Path) -> dict[str, dict[str, str]]:
+    if not path.exists():
+        return {}
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError(f"Image manifest must contain an object: {path}")
+    return {
+        str(code).lower(): details
+        for code, details in raw.items()
+        if isinstance(details, dict)
+    }
+
+
+def resolve_image(chain: list[Odf], images: dict[str, dict[str, str]]) -> tuple[str | None, str | None]:
+    for odf in reversed(chain):
+        details = images.get(odf.code)
+        if not details:
+            continue
+        thumbnail_url = details.get("thumbnailUrl")
+        source_url = details.get("sourceUrl")
+        return (
+            thumbnail_url if isinstance(thumbnail_url, str) else None,
+            source_url if isinstance(source_url, str) else None,
+        )
+    return None, None
+
+
 def nullable_number(value: str | None) -> int | float | None:
-    if value is None or value == "":
+    if value in (None, ""):
         return None
     try:
         number = float(value)
@@ -165,10 +182,14 @@ def nullable_text(value: str | None) -> str | None:
     return value if value not in (None, "") else None
 
 
-def vehicle_definition(code: str, values: dict[str, str]) -> dict[str, object] | None:
+def vehicle_definition(
+    code: str,
+    values: dict[str, str],
+    thumbnail_url: str | None,
+    thumbnail_source_url: str | None,
+) -> dict[str, object] | None:
     class_label = values.get("classlabel", "").lower()
     unit_name = nullable_text(values.get("unitname"))
-
     if not unit_name or class_label not in VEHICLE_CLASS_LABELS:
         return None
 
@@ -195,14 +216,25 @@ def vehicle_definition(code: str, values: dict[str, str]) -> dict[str, object] |
         "imageSignature": nullable_number(values.get("imagesignature")),
         "radarSignature": nullable_number(values.get("radarsignature")),
         "weaponMask": nullable_text(values.get("weaponmask")),
+        "thumbnailUrl": thumbnail_url,
+        "thumbnailSourceUrl": thumbnail_source_url,
         "weapons": weapons,
     }
 
 
-def iter_vehicle_definitions(odfs: dict[str, Odf]) -> Iterable[dict[str, object]]:
+def iter_vehicle_definitions(
+    odfs: dict[str, Odf],
+    images: dict[str, dict[str, str]],
+) -> Iterable[dict[str, object]]:
     for code in sorted(odfs):
-        values = resolve_game_object(code, odfs)
-        definition = vehicle_definition(code, values)
+        chain = inheritance_chain(code, odfs)
+        thumbnail_url, source_url = resolve_image(chain, images)
+        definition = vehicle_definition(
+            code,
+            resolve_game_object(chain),
+            thumbnail_url,
+            source_url,
+        )
         if definition:
             yield definition
 
@@ -236,17 +268,28 @@ def typescript_literal(value: object, indent: int = 0) -> str:
 
 
 def render(definitions: Iterable[dict[str, object]]) -> str:
-    definitions = list(definitions)
     rows = ",\n".join(
         f"    {definition['code']}: {typescript_literal(definition, 4)}"
         for definition in definitions
     )
-    return f"""// Generated by tools/build-stock-vehicle-catalog.py. Do not edit by hand.\n\nimport {{ StockVehicleDefinition }} from './stock-vehicles';\n\nexport const GENERATED_STOCK_VEHICLES: Readonly<Record<string, StockVehicleDefinition>> = Object.freeze({{\n{rows}\n}});\n"""
+    return (
+        "// Generated by tools/build-stock-vehicle-catalog.py. Do not edit by hand.\n\n"
+        "import type { StockVehicleDefinition } from './stock-vehicles';\n\n"
+        "export const GENERATED_STOCK_VEHICLES: "
+        "Readonly<Record<string, StockVehicleDefinition>> = Object.freeze({\n"
+        f"{rows}\n"
+        "});\n"
+    )
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("odf_root", type=Path)
+    parser.add_argument(
+        "--image-manifest",
+        type=Path,
+        default=Path("Web/public/vehicles/manifest.json"),
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -258,10 +301,14 @@ def main() -> int:
         parser.error(f"ODF root does not exist or is not a directory: {args.odf_root}")
 
     odfs = load_odfs(args.odf_root)
-    definitions = list(iter_vehicle_definitions(odfs))
+    images = load_image_manifest(args.image_manifest)
+    definitions = list(iter_vehicle_definitions(odfs, images))
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(render(definitions), encoding="utf-8")
-    print(f"Wrote {len(definitions)} stock vehicle definitions to {args.output}")
+    print(
+        f"Wrote {len(definitions)} stock vehicle definitions using {len(images)} image entries "
+        f"to {args.output}"
+    )
     return 0
 
 
