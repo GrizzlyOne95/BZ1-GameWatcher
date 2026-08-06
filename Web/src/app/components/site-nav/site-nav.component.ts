@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
-import { faDiscord, faYoutube } from '@fortawesome/free-brands-svg-icons';
+import { faYoutube } from '@fortawesome/free-brands-svg-icons';
+import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { environment } from '../../../environments/environment';
 
 /**
@@ -15,7 +16,7 @@ import { environment } from '../../../environments/environment';
 })
 export class SiteNavComponent {
     readonly faYouTube = faYoutube;
-    readonly faDiscord = faDiscord;
+    readonly faCommunity = faGlobe;
     readonly youTubeUrl = environment.youTubeUrl;
-    readonly discordInviteUrl = environment.discordInviteUrl;
+    readonly communitySiteUrl = environment.communitySiteUrl;
 }

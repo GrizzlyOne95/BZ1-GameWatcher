@@ -48,7 +48,7 @@
                             <button *ngIf="!lobby.isLocked && !lobby.isPrivate" (click)="joinGame(lobby)" class="btn btn-primary action-button" type="button">
                                 <img src="steam-icon.png" width="20" height="20" alt=""> Join
                             </button>
-                            <button (click)="shareToDiscord(lobby)" class="btn btn-outline-light action-button" type="button" title="Copy share link and open Discord">
+                            <button (click)="shareToCommunity(lobby)" class="btn btn-outline-light action-button" type="button" title="Copy share link and open Battlezone Community">
                                 <fa-icon [icon]="faLink"></fa-icon> Share
                             </button>
                         </div>
