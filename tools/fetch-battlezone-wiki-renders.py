@@ -10,7 +10,8 @@ Usage:
     python tools/fetch-battlezone-wiki-renders.py --codes bvrdev avtank
 
 Files are written under Web/public/vehicles and accompanied by manifest.json. Existing files are
-kept unless --force is supplied. The script stores source URLs for attribution and does not treat
+kept unless --force is supplied. A partial --codes run merges into the existing manifest instead of
+discarding unrelated thumbnails. The script stores source URLs for attribution and does not treat
 wiki/game artwork as covered by the repository's software license.
 """
 
@@ -159,6 +160,21 @@ def download(render: RenderFile, destination: Path, force: bool) -> None:
         destination.write_bytes(response.read())
 
 
+def load_existing_manifest(path: Path) -> dict[str, dict[str, str]]:
+    if not path.exists():
+        return {}
+
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError(f"Existing manifest must contain an object: {path}")
+
+    return {
+        str(code).lower(): details
+        for code, details in raw.items()
+        if isinstance(details, dict)
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -179,8 +195,13 @@ def main() -> int:
     requested_codes = {code.lower().removesuffix(".odf") for code in args.codes or []} or None
     renders = discover_renders(requested_codes)
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = args.output_dir / "manifest.json"
 
-    manifest: dict[str, dict[str, str]] = {}
+    # A scoped import is additive. A full import intentionally rebuilds the manifest from the
+    # category so stale entries disappear when a wiki file is removed or renamed.
+    manifest = load_existing_manifest(manifest_path) if requested_codes else {}
+    imported_codes: set[str] = set()
+
     for render in renders:
         filename = f"{render.code}{render.extension}"
         destination = args.output_dir / filename
@@ -192,19 +213,20 @@ def main() -> int:
             "originalUrl": render.download_url,
             "wikiTitle": render.title,
         }
+        imported_codes.add(render.code)
         print(f"{render.code}: {render.title} -> {destination}")
 
     if not args.dry_run:
-        (args.output_dir / "manifest.json").write_text(
+        manifest_path.write_text(
             json.dumps(manifest, indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
 
-    missing = sorted(requested_codes - set(manifest)) if requested_codes else []
+    missing = sorted(requested_codes - imported_codes) if requested_codes else []
     if missing:
         print(f"warning: no primary wiki render found for: {', '.join(missing)}", file=sys.stderr)
 
-    print(f"Prepared {len(manifest)} render thumbnails.")
+    print(f"Imported {len(imported_codes)} render thumbnails; manifest contains {len(manifest)} entries.")
     return 0
 
 
