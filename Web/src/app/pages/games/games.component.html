@@ -164,7 +164,7 @@
 <ng-template #playerCard let-user let-lobby="lobby">
     <article class="player-card">
         <div class="player-summary">
-            <img *ngIf="user.steamImgUri; else playerAvatarFallback" [src]="user.steamImgUri" width="48" height="48" alt="Player avatar">
+            <img class="player-avatar" *ngIf="user.steamImgUri; else playerAvatarFallback" [src]="user.steamImgUri" width="48" height="48" alt="Player avatar">
             <ng-template #playerAvatarFallback>
                 <span class="avatar-fallback"><fa-icon [icon]="faUser"></fa-icon></span>
             </ng-template>
@@ -181,6 +181,12 @@
                     {{ userPlatform(user) }} · Team {{ display(user.metaData?.team) }} · {{ vehicleLabel(user.metaData?.vehicle) }}
                 </div>
             </div>
+
+            <ng-container *ngIf="stockVehicle(user.metaData?.vehicle) as summaryVehicle">
+                <a *ngIf="summaryVehicle.thumbnailUrl" class="vehicle-thumbnail-link" [href]="summaryVehicle.thumbnailSourceUrl || summaryVehicle.thumbnailUrl" target="_blank" rel="noopener noreferrer" [title]="'Open render source for ' + summaryVehicle.unitName">
+                    <img class="vehicle-thumbnail" [src]="summaryVehicle.thumbnailUrl" [alt]="summaryVehicle.unitName + ' craft render'" width="76" height="48" loading="lazy" (error)="hideBrokenImage($event)">
+                </a>
+            </ng-container>
 
             <a *ngIf="user.isSteam && user.steamCleanId" class="steam-link" href="https://steamcommunity.com/profiles/{{ user.steamCleanId }}/" target="_blank" rel="noopener noreferrer" title="Open Steam profile">
                 Steam
@@ -221,6 +227,11 @@
             <details class="detail-panel compact-panel" *ngIf="stockVehicle(user.metaData?.vehicle) as vehicle">
                 <summary>Known stock craft details: {{ vehicle.unitName }}</summary>
                 <div class="detail-section">
+                    <a *ngIf="vehicle.thumbnailUrl" class="vehicle-detail-image-link" [href]="vehicle.thumbnailSourceUrl || vehicle.thumbnailUrl" target="_blank" rel="noopener noreferrer" [title]="'Open render source for ' + vehicle.unitName">
+                        <img class="vehicle-detail-image" [src]="vehicle.thumbnailUrl" [alt]="vehicle.unitName + ' craft render'" loading="lazy" (error)="hideBrokenImage($event)">
+                        <span>Battlezone Wiki render</span>
+                    </a>
+
                     <h5>Object definition</h5>
                     <dl class="detail-grid player-detail-grid">
                         <div><dt>ODF code</dt><dd>{{ vehicle.code }}</dd></div>
@@ -238,6 +249,7 @@
                         <div><dt>Heat signature</dt><dd>{{ display(vehicle.heatSignature) }}</dd></div>
                         <div><dt>Image signature</dt><dd>{{ display(vehicle.imageSignature) }}</dd></div>
                         <div><dt>Radar signature</dt><dd>{{ display(vehicle.radarSignature) }}</dd></div>
+                        <div *ngIf="vehicle.thumbnailSourceUrl"><dt>Render source</dt><dd><a class="link-info text-decoration-none" [href]="vehicle.thumbnailSourceUrl" target="_blank" rel="noopener noreferrer">Battlezone Wiki</a></dd></div>
                     </dl>
                 </div>
 
