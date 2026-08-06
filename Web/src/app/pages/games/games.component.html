@@ -1,156 +1,282 @@
 <app-site-nav></app-site-nav>
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-xl-9 col-12">
-            <section class="wrapper">
-                <div class="row">
-                    <div class="col mb-2">
-                        <h1 class="display-4 font-weight-bolder">Lobbies [{{ BZ98Lobbies.length }}]</h1>
-                    </div>
-                </div>
+<div class="container-fluid page-shell">
+    <div class="page-heading d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2">
+        <div>
+            <h1 class="display-5 mb-1">Battlezone 98 Redux Lobbies</h1>
+            <p class="text-secondary mb-0">Live game, rules, lobby, and player information reported by the public lobby service.</p>
+        </div>
+        <div class="refresh-status" *ngIf="lastRefreshedAt">
+            <span class="live-dot"></span>
+            Updated {{ lastRefreshedAt | date:'mediumTime' }}
+        </div>
+    </div>
 
-                <div class="alert alert-warning" role="alert" *ngIf="loadFailed">
-                    Couldn't reach the game watcher. Still trying&hellip;
-                </div>
+    <div class="alert alert-warning" role="alert" *ngIf="loadFailed">
+        Couldn't reach the game watcher. Existing data is retained while the page keeps trying.
+    </div>
 
-                <div class="text-secondary mb-3" *ngIf="hasLoaded && !loadFailed && BZ98Lobbies.length === 0">
-                    No games are running right now.
-                </div>
+    <div class="row g-4">
+        <main class="col-xl-9 col-12">
+            <div class="section-heading d-flex align-items-center justify-content-between">
+                <h2 class="mb-0">Games</h2>
+                <span class="count-pill">{{ BZ98Lobbies.length }}</span>
+            </div>
 
-                <div class="row">
-                    <div class="col-lg-6 pb-3" *ngFor="let lobby of BZ98Lobbies; index as i;">
-                        <div class="card card-custom bg-dark border-dark" style="height:550px;">
-                            <div class="card-custom-img" style="background-image: url('/poster.jpg')">
-                                <div class="navbar navbar-expand-lg">
-                                    <div class="container-fluid">
-                                        <div class="navbar-brand bg-dark-subtle p-2 rounded opacity-75">
-                                            <label class="fw-semibold">Game {{ i + 1 }} | {{ lobby.stats?.mapFile }} - {{ lobby.metaData?.gameType === '0' ? 'MPI' : 'Strategy' }}</label>
-                                        </div>
+            <div class="empty-state" *ngIf="hasLoaded && !loadFailed && BZ98Lobbies.length === 0">
+                No games are running right now.
+            </div>
 
-                                        <div class="d-flex justify-content-end flex-wrap flex-md-nowrap align-items-center">
-                                            <div class="custom-pill" style="background-color: purple;"><fa-icon style="font-size: 18px;" class="me-2" [icon]="faUser"></fa-icon> {{ lobby.userCount }} / {{ lobby.memberLimit }}</div>
-                                            <div class="ms-2 me-2">
-                                                <fa-icon *ngIf="lobby.isLocked || lobby.isPrivate" class="icon bg-danger" [icon]="faLock"></fa-icon>
-                                                <fa-icon *ngIf="!lobby.isLocked && !lobby.isPrivate" class="icon bg-success" [icon]="faLockOpen"></fa-icon>
-                                            </div>
-                                            <ng-container *ngIf="!lobby.isLocked && !lobby.isPrivate">
-                                                <div class="btn-group">
-                                                    <button (click)="joinGame(lobby)" title="Join Game via Steam" type="button" class="icon btn custom-pill me-1" style="background-color: purple;"><img src="steam-icon.png" width="28px" alt="Join via Steam" /></button>
-                                                    <button (click)="shareToDiscord(lobby)" title="Share Link to Discord" type="button" class="icon btn custom-pill" style="background-color: purple;"><fa-icon [icon]="faLink"></fa-icon></button>
-                                                </div>
-                                            </ng-container>
-                                        </div>
-                                    </div>
-                                </div>
+            <article class="game-card" *ngFor="let lobby of BZ98Lobbies; index as i; trackBy: trackLobby">
+                <div class="game-hero" style="background-image: url('/poster.jpg')">
+                    <div class="game-hero-overlay"></div>
+                    <div class="game-hero-content">
+                        <div>
+                            <div class="eyebrow">Game {{ i + 1 }} · Lobby {{ lobby.id }}</div>
+                            <h3>{{ display(lobby.stats?.mapFile) }}</h3>
+                            <div class="hero-subtitle">
+                                {{ gameTypeLabel(lobby.metaData?.gameType) }} · {{ launchStatus(lobby) }} · {{ lobbyDisplayName(lobby) }}
                             </div>
-                            <div class="card-custom-avatar" *ngIf="lobby.host as host">
-                                <img *ngIf="host.steamImgUri; else hostAvatarFallback" class="img-fluid border border-3 border-warning" [src]="host.steamImgUri" alt="Host avatar" />
-                                <ng-template #hostAvatarFallback>
-                                    <span class="avatar-fallback img-fluid border border-3 border-warning"><fa-icon [icon]="faUser"></fa-icon></span>
-                                </ng-template>
-                                <div class="host-marker text-dark">Host</div>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <!-- Left Column (Odd Players) -->
-                                    <div class="col-md-6 col-12">
-                                        <div class="card" *ngIf="lobby.oddTeamUsers.length > 0">
-                                            <div class="card-header">
-                                                Odds
-                                            </div>
+                        </div>
 
-                                            <div class="list list-row">
-                                                <ng-container *ngFor="let user of lobby.oddTeamUsers;">
-                                                    <div class="d-flex justify-content-start align-items-start">
-                                                        <img *ngIf="user.steamImgUri; else smallAvatarFallback" [src]="user.steamImgUri" width="40" height="40" alt="">
-                                                        <ng-template #smallAvatarFallback>
-                                                            <span class="avatar-fallback avatar-fallback-sm"><fa-icon [icon]="faUser"></fa-icon></span>
-                                                        </ng-template>
-                                                        <h6 class="ms-2 mt-2">{{ user.name }}</h6>
-                                                        <a title="Steam Profile" *ngIf="user.isSteam" class="m-1 text-decoration-none btn btn-sm btn-primary text-bg-primary border border-primary" style="--bs-bg-opacity:.3;--bs-border-opacity:.3;" href="https://steamcommunity.com/profiles/{{ user.steamCleanId }}/" target="_blank" rel="noopener noreferrer">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-steam" viewBox="0 0 16 16" style="margin-bottom:3px;">
-                                                                <path d="M.329 10.333A8.01 8.01 0 0 0 7.99 16C12.414 16 16 12.418 16 8s-3.586-8-8.009-8A8.006 8.006 0 0 0 0 7.468l.003.006 4.304 1.769A2.2 2.2 0 0 1 5.62 8.88l1.96-2.844-.001-.04a3.046 3.046 0 0 1 3.042-3.043 3.046 3.046 0 0 1 3.042 3.043 3.047 3.047 0 0 1-3.111 3.044l-2.804 2a2.223 2.223 0 0 1-3.075 2.11 2.22 2.22 0 0 1-1.312-1.568L.33 10.333Z"/>
-                                                                <path d="M4.868 12.683a1.715 1.715 0 0 0 1.318-3.165 1.7 1.7 0 0 0-1.263-.02l1.023.424a1.261 1.261 0 1 1-.97 2.33l-.99-.41a1.7 1.7 0 0 0 .882.84Zm3.726-6.687a2.03 2.03 0 0 0 2.027 2.029 2.03 2.03 0 0 0 2.027-2.029 2.03 2.03 0 0 0-2.027-2.027 2.03 2.03 0 0 0-2.027 2.027m2.03-1.527a1.524 1.524 0 1 1-.002 3.048 1.524 1.524 0 0 1 .002-3.048"/>
-                                                            </svg>
-                                                        </a>
-                                                    </div>
-                                                </ng-container>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Right Column (Even Players) -->
-                                    <div class="col-md-6 col-12">
-                                        <div class="card" *ngIf="lobby.evenTeamUsers.length > 0">
-                                            <div class="card-header">
-                                                Evens
-                                            </div>
-
-                                            <div class="list-group">
-                                                <ng-container *ngFor="let user of lobby.evenTeamUsers;">
-                                                    <div class="d-flex justify-content-start align-items-start">
-                                                        <img *ngIf="user.steamImgUri; else evenAvatarFallback" [src]="user.steamImgUri" width="40" height="40" alt="">
-                                                        <ng-template #evenAvatarFallback>
-                                                            <span class="avatar-fallback avatar-fallback-sm"><fa-icon [icon]="faUser"></fa-icon></span>
-                                                        </ng-template>
-                                                        <h6 class="ms-2 mt-2">{{ user.name }}</h6>
-                                                        <a title="Steam Profile" *ngIf="user.isSteam" class="m-1 text-decoration-none btn btn-sm btn-primary text-bg-primary border border-primary" style="--bs-bg-opacity:.3;--bs-border-opacity:.3;" href="https://steamcommunity.com/profiles/{{ user.steamCleanId }}/" target="_blank" rel="noopener noreferrer">
-                                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-steam" viewBox="0 0 16 16" style="margin-bottom:3px;">
-                                                                <path d="M.329 10.333A8.01 8.01 0 0 0 7.99 16C12.414 16 16 12.418 16 8s-3.586-8-8.009-8A8.006 8.006 0 0 0 0 7.468l.003.006 4.304 1.769A2.2 2.2 0 0 1 5.62 8.88l1.96-2.844-.001-.04a3.046 3.046 0 0 1 3.042-3.043 3.046 3.046 0 0 1 3.042 3.043 3.047 3.047 0 0 1-3.111 3.044l-2.804 2a2.223 2.223 0 0 1-3.075 2.11 2.22 2.22 0 0 1-1.312-1.568L.33 10.333Z"/>
-                                                                <path d="M4.868 12.683a1.715 1.715 0 0 0 1.318-3.165 1.7 1.7 0 0 0-1.263-.02l1.023.424a1.261 1.261 0 1 1-.97 2.33l-.99-.41a1.7 1.7 0 0 0 .882.84Zm3.726-6.687a2.03 2.03 0 0 0 2.027 2.029 2.03 2.03 0 0 0 2.027-2.029 2.03 2.03 0 0 0-2.027-2.027 2.03 2.03 0 0 0-2.027 2.027m2.03-1.527a1.524 1.524 0 1 1-.002 3.048 1.524 1.524 0 0 1 .002-3.048"/>
-                                                            </svg>
-                                                        </a>
-                                                    </div>
-                                                </ng-container>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-footer text-body-secondary text-center">Game Version: {{ lobby.metaData?.gameVersion }}</div>
+                        <div class="hero-actions">
+                            <span class="status-badge players"><fa-icon [icon]="faUser"></fa-icon>{{ lobby.userCount }} / {{ lobby.memberLimit }}</span>
+                            <span class="status-badge" [class.locked]="lobby.isLocked || lobby.isPrivate" [class.open]="!lobby.isLocked && !lobby.isPrivate">
+                                <fa-icon [icon]="lobby.isLocked || lobby.isPrivate ? faLock : faLockOpen"></fa-icon>
+                                {{ lobby.isLocked || lobby.isPrivate ? 'Restricted' : 'Open' }}
+                            </span>
+                            <button *ngIf="!lobby.isLocked && !lobby.isPrivate" (click)="joinGame(lobby)" class="btn btn-primary action-button" type="button">
+                                <img src="steam-icon.png" width="20" height="20" alt=""> Join
+                            </button>
+                            <button (click)="shareToDiscord(lobby)" class="btn btn-outline-light action-button" type="button" title="Copy share link and open Discord">
+                                <fa-icon [icon]="faLink"></fa-icon> Share
+                            </button>
                         </div>
                     </div>
                 </div>
-            </section>
-        </div>
-        <div class="col-xl-3 col-12">
-            <section class="wrapper">
-                <div class="row">
-                    <div class="col mb-2">
-                        <h1 class="display-4 font-weight-bolder">Waiting Room</h1>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12 mb-4">
-                        <ng-container *ngFor="let chatLobby of BZ98ChatLobbies;">
-                            <div class="card mb-3" *ngIf="chatLobby.users.length > 0">
-                                <div class="card-header">
-                                    Waiting in <span class="text-capitalize">{{ chatLobby.metaData?.name }}</span>
-                                </div>
 
-                                <div class="list-group">
-                                    <ng-container *ngFor="let user of chatLobby.users;">
-                                        <div class="d-flex justify-content-start align-items-start">
-                                            <img *ngIf="user.steamImgUri; else waitingAvatarFallback" class="rounded" [src]="user.steamImgUri" width="64" height="64" alt="">
-                                            <ng-template #waitingAvatarFallback>
-                                                <span class="avatar-fallback avatar-fallback-lg rounded"><fa-icon [icon]="faUser"></fa-icon></span>
-                                            </ng-template>
-                                            <h5 class="ms-2 mt-1">{{ user.name }}</h5>
-                                            <a title="Steam Profile" *ngIf="user.isSteam" class="m-1 text-decoration-none btn btn-sm btn-primary text-bg-primary border border-primary" style="--bs-bg-opacity:.3;--bs-border-opacity:.3;" href="https://steamcommunity.com/profiles/{{ user.steamCleanId }}/" target="_blank" rel="noopener noreferrer">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-steam" viewBox="0 0 16 16" style="margin-bottom:3px;">
-                                                    <path d="M.329 10.333A8.01 8.01 0 0 0 7.99 16C12.414 16 16 12.418 16 8s-3.586-8-8.009-8A8.006 8.006 0 0 0 0 7.468l.003.006 4.304 1.769A2.2 2.2 0 0 1 5.62 8.88l1.96-2.844-.001-.04a3.046 3.046 0 0 1 3.042-3.043 3.046 3.046 0 0 1 3.042 3.043 3.047 3.047 0 0 1-3.111 3.044l-2.804 2a2.223 2.223 0 0 1-3.075 2.11 2.22 2.22 0 0 1-1.312-1.568L.33 10.333Z"/>
-                                                    <path d="M4.868 12.683a1.715 1.715 0 0 0 1.318-3.165 1.7 1.7 0 0 0-1.263-.02l1.023.424a1.261 1.261 0 1 1-.97 2.33l-.99-.41a1.7 1.7 0 0 0 .882.84Zm3.726-6.687a2.03 2.03 0 0 0 2.027 2.029 2.03 2.03 0 0 0 2.027-2.029 2.03 2.03 0 0 0-2.027-2.027 2.03 2.03 0 0 0-2.027 2.027m2.03-1.527a1.524 1.524 0 1 1-.002 3.048 1.524 1.524 0 0 1 .002-3.048"/>
-                                                </svg>
-                                            </a>
-                                        </div>
-                                    </ng-container>
-                                </div>
-                            </div>
-                        </ng-container>
+                <div class="game-content">
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span>Game version</span>
+                            <strong>{{ display(lobby.metaData?.gameVersion) }}</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Mod / CRC</span>
+                            <strong>{{ display(lobby.stats?.mod) }} · {{ display(lobby.stats?.crc32) }}</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Created</span>
+                            <strong>{{ lobby.createdTime | date:'medium' }}</strong>
+                        </div>
+                        <div class="summary-item">
+                            <span>Owner</span>
+                            <strong class="text-break">{{ display(lobby.owner) }}</strong>
+                        </div>
                     </div>
+
+                    <div class="rules-strip">
+                        <span class="rule-chip"><b>Lives</b> {{ display(lobby.stats?.attributes?.lives) }}</span>
+                        <span class="rule-chip" [class.enabled]="lobby.stats?.attributes?.satellite"><b>Satellite</b> {{ yesNo(lobby.stats?.attributes?.satellite) }}</span>
+                        <span class="rule-chip" [class.enabled]="lobby.stats?.attributes?.barracks"><b>Barracks</b> {{ yesNo(lobby.stats?.attributes?.barracks) }}</span>
+                        <span class="rule-chip" [class.enabled]="lobby.stats?.attributes?.sniper"><b>Sniper</b> {{ yesNo(lobby.stats?.attributes?.sniper) }}</span>
+                        <span class="rule-chip" [class.enabled]="lobby.stats?.attributes?.splinter"><b>Splinter</b> {{ yesNo(lobby.stats?.attributes?.splinter) }}</span>
+                    </div>
+
+                    <div class="players-heading">
+                        <h4>Players</h4>
+                        <span>{{ lobby.users.length }} reported</span>
+                    </div>
+
+                    <div class="team-grid">
+                        <ng-container *ngTemplateOutlet="teamGroup; context: {$implicit: lobby.oddTeamUsers, title: 'Odds', lobby: lobby}"></ng-container>
+                        <ng-container *ngTemplateOutlet="teamGroup; context: {$implicit: lobby.evenTeamUsers, title: 'Evens', lobby: lobby}"></ng-container>
+                        <ng-container *ngTemplateOutlet="teamGroup; context: {$implicit: lobby.unassignedTeamUsers, title: 'No team reported', lobby: lobby}"></ng-container>
+                    </div>
+
+                    <details class="detail-panel">
+                        <summary>All lobby details</summary>
+                        <ng-container *ngTemplateOutlet="lobbyDetails; context: {$implicit: lobby}"></ng-container>
+                    </details>
                 </div>
-            </section>
-        </div>
+            </article>
+        </main>
+
+        <aside class="col-xl-3 col-12">
+            <div class="section-heading d-flex align-items-center justify-content-between">
+                <h2 class="mb-0">Waiting Room</h2>
+                <span class="count-pill">{{ BZ98ChatLobbies.length }}</span>
+            </div>
+
+            <div class="empty-state compact" *ngIf="hasLoaded && BZ98ChatLobbies.length === 0">
+                No chat lobbies were reported.
+            </div>
+
+            <article class="waiting-card" *ngFor="let chatLobby of BZ98ChatLobbies; trackBy: trackLobby">
+                <div class="waiting-card-header">
+                    <div>
+                        <div class="eyebrow">Chat lobby {{ chatLobby.id }}</div>
+                        <h3>{{ lobbyDisplayName(chatLobby) }}</h3>
+                    </div>
+                    <span class="count-pill small">{{ chatLobby.userCount }}</span>
+                </div>
+
+                <div class="waiting-users" *ngIf="chatLobby.users.length > 0; else noVisibleUsers">
+                    <ng-container *ngFor="let user of chatLobby.users; trackBy: trackUser">
+                        <ng-container *ngTemplateOutlet="playerCard; context: {$implicit: user, lobby: chatLobby}"></ng-container>
+                    </ng-container>
+                </div>
+                <ng-template #noVisibleUsers>
+                    <p class="text-secondary mb-0">No public users are visible in this lobby.</p>
+                </ng-template>
+
+                <details class="detail-panel compact-panel">
+                    <summary>All chat-lobby details</summary>
+                    <ng-container *ngTemplateOutlet="lobbyDetails; context: {$implicit: chatLobby}"></ng-container>
+                </details>
+            </article>
+        </aside>
     </div>
 </div>
+
+<ng-template #teamGroup let-users let-title="title" let-lobby="lobby">
+    <section class="team-card" *ngIf="users.length > 0">
+        <div class="team-card-header">
+            <span>{{ title }}</span>
+            <span>{{ users.length }}</span>
+        </div>
+        <div class="team-card-body">
+            <ng-container *ngFor="let user of users; trackBy: trackUser">
+                <ng-container *ngTemplateOutlet="playerCard; context: {$implicit: user, lobby: lobby}"></ng-container>
+            </ng-container>
+        </div>
+    </section>
+</ng-template>
+
+<ng-template #playerCard let-user let-lobby="lobby">
+    <article class="player-card">
+        <div class="player-summary">
+            <img *ngIf="user.steamImgUri; else playerAvatarFallback" [src]="user.steamImgUri" width="48" height="48" alt="Player avatar">
+            <ng-template #playerAvatarFallback>
+                <span class="avatar-fallback"><fa-icon [icon]="faUser"></fa-icon></span>
+            </ng-template>
+
+            <div class="player-identity">
+                <div class="player-name-row">
+                    <strong>{{ display(user.name) }}</strong>
+                    <span class="mini-badge host" *ngIf="isHost(lobby, user)">Host</span>
+                    <span class="mini-badge warning" *ngIf="user.isDangerous">Flagged</span>
+                    <span class="mini-badge" *ngIf="user.isAdmin">Admin</span>
+                    <span class="mini-badge" *ngIf="user.isTest">Test</span>
+                </div>
+                <div class="player-subtitle">
+                    {{ userPlatform(user) }} · Team {{ display(user.metaData?.team) }} · {{ display(user.metaData?.vehicle) }}
+                </div>
+            </div>
+
+            <a *ngIf="user.isSteam && user.steamCleanId" class="steam-link" href="https://steamcommunity.com/profiles/{{ user.steamCleanId }}/" target="_blank" rel="noopener noreferrer" title="Open Steam profile">
+                Steam
+            </a>
+        </div>
+
+        <details class="player-details">
+            <summary>Player details</summary>
+            <dl class="detail-grid player-detail-grid">
+                <div><dt>Player ID</dt><dd>{{ display(user.id) }}</dd></div>
+                <div><dt>Lobby ID</dt><dd>{{ user.lobby }}</dd></div>
+                <div><dt>Authentication type</dt><dd>{{ display(user.authType) }}</dd></div>
+                <div><dt>Client version</dt><dd>{{ display(user.clientVersion) }}</dd></div>
+                <div><dt>Authenticated</dt><dd>{{ yesNo(user.isAuth) }}</dd></div>
+                <div><dt>Administrator</dt><dd>{{ yesNo(user.isAdmin) }}</dd></div>
+                <div><dt>Battlezone account</dt><dd>{{ yesNo(user.isBB) }}</dd></div>
+                <div><dt>Flagged dangerous</dt><dd>{{ yesNo(user.isDangerous) }}</dd></div>
+                <div><dt>In lounge</dt><dd>{{ yesNo(user.isInLounge) }}</dd></div>
+                <div><dt>GOG</dt><dd>{{ yesNo(user.isGOG) }}</dd></div>
+                <div><dt>Steam</dt><dd>{{ yesNo(user.isSteam) }}</dd></div>
+                <div><dt>Test account</dt><dd>{{ yesNo(user.isTest) }}</dd></div>
+                <div><dt>Steam ID</dt><dd>{{ display(user.steamCleanId) }}</dd></div>
+                <div class="detail-wide"><dt>Steam avatar URI</dt><dd class="text-break">{{ display(user.steamImgUri) }}</dd></div>
+            </dl>
+
+            <h6 class="detail-subheading">Player metadata</h6>
+            <dl class="detail-grid player-detail-grid">
+                <div><dt>Clients connected</dt><dd>{{ display(user.metaData?.clientsConnected) }}</dd></div>
+                <div><dt>Friend ID</dt><dd>{{ display(user.metaData?.friendId) }}</dd></div>
+                <div><dt>Launched</dt><dd>{{ display(user.metaData?.launched) }}</dd></div>
+                <div><dt>Mini ID</dt><dd>{{ display(user.metaData?.miniId) }}</dd></div>
+                <div><dt>Team</dt><dd>{{ display(user.metaData?.team) }}</dd></div>
+                <div><dt>Vehicle</dt><dd>{{ display(user.metaData?.vehicle) }}</dd></div>
+                <div class="detail-wide"><dt>Known players</dt><dd class="text-break">{{ display(user.metaData?.knownPlayers) }}</dd></div>
+                <div class="detail-wide"><dt>Ready string</dt><dd class="text-break raw-value">{{ display(user.metaData?.ready) }}</dd></div>
+            </dl>
+
+            <ng-container *ngIf="user.stats as userStats">
+                <h6 class="detail-subheading">Player-reported stats</h6>
+                <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: userStats}"></ng-container>
+            </ng-container>
+        </details>
+    </article>
+</ng-template>
+
+<ng-template #lobbyDetails let-lobby>
+    <div class="detail-section">
+        <h5>Lobby</h5>
+        <dl class="detail-grid">
+            <div><dt>Lobby ID</dt><dd>{{ lobby.id }}</dd></div>
+            <div><dt>Client version</dt><dd>{{ display(lobby.clientVersion) }}</dd></div>
+            <div><dt>Created</dt><dd>{{ lobby.createdTime | date:'medium' }}</dd></div>
+            <div><dt>Owner ID</dt><dd>{{ display(lobby.owner) }}</dd></div>
+            <div><dt>Reported users</dt><dd>{{ lobby.userCount }}</dd></div>
+            <div><dt>Member limit</dt><dd>{{ lobby.memberLimit }}</dd></div>
+            <div><dt>Chat lobby</dt><dd>{{ yesNo(lobby.isChat) }}</dd></div>
+            <div><dt>Locked</dt><dd>{{ yesNo(lobby.isLocked) }}</dd></div>
+            <div><dt>Private</dt><dd>{{ yesNo(lobby.isPrivate) }}</dd></div>
+            <div class="detail-wide"><dt>Direct join URL</dt><dd class="text-break">{{ display(lobby.directJoinUrl) }}</dd></div>
+        </dl>
+    </div>
+
+    <div class="detail-section">
+        <h5>Lobby metadata</h5>
+        <dl class="detail-grid">
+            <div><dt>Game version</dt><dd>{{ display(lobby.metaData?.gameVersion) }}</dd></div>
+            <div><dt>Game type</dt><dd>{{ gameTypeLabel(lobby.metaData?.gameType) }} ({{ display(lobby.metaData?.gameType) }})</dd></div>
+            <div><dt>Launched</dt><dd>{{ display(lobby.metaData?.launched) }}</dd></div>
+            <div><dt>Name</dt><dd>{{ display(lobby.metaData?.name) }}</dd></div>
+            <div><dt>Next MID</dt><dd>{{ display(lobby.metaData?.nextMid) }}</dd></div>
+            <div><dt>Metadata user count</dt><dd>{{ display(lobby.metaData?.userCount) }}</dd></div>
+            <div class="detail-wide"><dt>User pack</dt><dd class="text-break raw-value">{{ display(lobby.metaData?.userPack) }}</dd></div>
+            <div class="detail-wide"><dt>Game settings</dt><dd class="text-break raw-value">{{ display(lobby.metaData?.gameSettings) }}</dd></div>
+        </dl>
+    </div>
+
+    <div class="detail-section" *ngIf="lobby.parsedStats as parsedStats">
+        <h5>Parsed game settings</h5>
+        <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: parsedStats}"></ng-container>
+    </div>
+
+    <div class="detail-section">
+        <h5>API-reported stats</h5>
+        <ng-container *ngIf="lobby.apiStats as apiStats; else noApiStats">
+            <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: apiStats}"></ng-container>
+        </ng-container>
+        <ng-template #noApiStats><p class="text-secondary mb-0">No stats object was reported.</p></ng-template>
+    </div>
+
+    <div class="detail-section" *ngIf="lobby.host as host">
+        <h5>Host snapshot</h5>
+        <ng-container *ngTemplateOutlet="playerCard; context: {$implicit: host, lobby: lobby}"></ng-container>
+    </div>
+</ng-template>
+
+<ng-template #statsDetails let-stats>
+    <dl class="detail-grid">
+        <div><dt>Map file</dt><dd>{{ display(stats.mapFile) }}</dd></div>
+        <div><dt>CRC32</dt><dd>{{ display(stats.crc32) }}</dd></div>
+        <div><dt>Mod</dt><dd>{{ display(stats.mod) }}</dd></div>
+        <div><dt>Lives</dt><dd>{{ display(stats.attributes?.lives) }}</dd></div>
+        <div><dt>Satellite</dt><dd>{{ yesNo(stats.attributes?.satellite) }}</dd></div>
+        <div><dt>Barracks</dt><dd>{{ yesNo(stats.attributes?.barracks) }}</dd></div>
+        <div><dt>Sniper</dt><dd>{{ yesNo(stats.attributes?.sniper) }}</dd></div>
+        <div><dt>Splinter</dt><dd>{{ yesNo(stats.attributes?.splinter) }}</dd></div>
+    </dl>
+</ng-template>
