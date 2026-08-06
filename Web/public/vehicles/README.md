@@ -1,9 +1,9 @@
 # Vehicle thumbnails
 
 The optimized thumbnails in this directory are committed repository assets and are served by the
-Game Watcher itself from `/vehicles/*`. Production builds do **not** contact the Battlezone Wiki.
-If Fandom or the wiki is unavailable, existing deployments and future clean deployments continue to
-use the last reviewed render set stored here.
+Game Watcher itself from `/vehicles/*`. Once the cache has been populated and passes validation,
+production builds use it without contacting the Battlezone Wiki. Until that first seed completes,
+the Render image performs a best-effort refresh so the existing site does not lose its renders.
 
 `tools/fetch-battlezone-wiki-renders.py` is an explicit maintenance utility. It downloads reduced-size
 identification renders, writes each successful download into this directory, and updates
@@ -62,8 +62,8 @@ python tools/fetch-battlezone-wiki-renders.py --dry-run
 ```
 
 The **Refresh vehicle renders** GitHub Actions workflow runs the same refresh and commits changed
-images, the manifest, and the generated TypeScript lookup. Normal application CI and Render deploys
-remain network-independent.
+images, the manifest, and the generated TypeScript lookup. After that commit exists, normal
+application builds are network-independent for unit artwork.
 
 The software license for this repository does **not** grant rights to third-party artwork. Battlezone
 renders and trademarks remain the property of their respective owners. The site uses reduced-size
