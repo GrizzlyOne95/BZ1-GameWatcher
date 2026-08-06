@@ -1,10 +1,142 @@
 <app-site-nav></app-site-nav>
 
-<div class="container-fluid mt-4">
-    <div class="row">
-        <div class="col-12">
-            <h1 class="display-4">Unit Database</h1>
-            <p class="text-secondary">Coming soon.</p>
+<div class="units-page">
+    <header class="units-heading">
+        <div>
+            <div class="eyebrow">Stock object database</div>
+            <h1>Units</h1>
+            <p>Browse Battlezone 98 Redux stock craft, deployables, buildings, stats, and weapon hardpoints resolved from the original ODF definitions.</p>
+        </div>
+        <div class="catalog-count">
+            <strong>{{ units.length }}</strong>
+            <span>known definitions</span>
+        </div>
+    </header>
+
+    <section class="filter-panel" aria-label="Unit filters">
+        <label class="search-field">
+            <span>Search</span>
+            <input type="search" [(ngModel)]="searchTerm" placeholder="Name, ODF, weapon, class…" autocomplete="off">
+        </label>
+
+        <label>
+            <span>Faction</span>
+            <select [(ngModel)]="selectedFaction">
+                <option value="all">All factions</option>
+                <option *ngFor="let faction of factions" [value]="faction.key">{{ faction.name }}</option>
+            </select>
+        </label>
+
+        <label>
+            <span>Class</span>
+            <select [(ngModel)]="selectedClass">
+                <option value="all">All classes</option>
+                <option *ngFor="let classLabel of classLabels" [value]="classLabel">{{ readableClass(classLabel) }}</option>
+            </select>
+        </label>
+
+        <label>
+            <span>Sort</span>
+            <select [(ngModel)]="sortBy">
+                <option value="name">Name</option>
+                <option value="faction">Faction</option>
+                <option value="health">Maximum health</option>
+                <option value="cost">Scrap cost</option>
+            </select>
+        </label>
+
+        <label class="image-filter">
+            <input type="checkbox" [(ngModel)]="onlyWithImages">
+            <span>Only units with renders</span>
+        </label>
+    </section>
+
+    <div class="catalog-summary">
+        <span>Showing <strong>{{ filteredUnits.length }}</strong> of {{ units.length }}</span>
+        <button type="button" (click)="clearFilters()" *ngIf="searchTerm || selectedFaction !== 'all' || selectedClass !== 'all' || sortBy !== 'name' || onlyWithImages">
+            Clear filters
+        </button>
+    </div>
+
+    <div class="faction-legend">
+        <div class="faction-chip" *ngFor="let faction of factions">
+            <img [src]="faction.logoUrl" [alt]="faction.name + ' emblem'" width="30" height="30" (error)="hideBrokenImage($event)">
+            <span>{{ faction.name }}</span>
+            <small>{{ faction.prefix }}*</small>
         </div>
     </div>
+
+    <div class="empty-state" *ngIf="filteredUnits.length === 0">
+        No known stock units match the selected filters.
+    </div>
+
+    <main class="unit-grid" *ngIf="filteredUnits.length > 0">
+        <article class="unit-card" *ngFor="let unit of filteredUnits; trackBy: trackUnit">
+            <div class="unit-visual" [class.has-render]="unit.thumbnailUrl">
+                <ng-container *ngIf="factionFor(unit) as faction">
+                    <img class="faction-watermark" [src]="faction.logoUrl" [alt]="faction.name + ' emblem'" loading="lazy" (error)="hideBrokenImage($event)">
+                    <span class="faction-badge">{{ faction.name }}</span>
+                </ng-container>
+
+                <a *ngIf="unit.thumbnailUrl; else factionFallback" [href]="unit.thumbnailSourceUrl || unit.thumbnailUrl" target="_blank" rel="noopener noreferrer">
+                    <img class="unit-render" [src]="unit.thumbnailUrl" [alt]="unit.unitName + ' render'" loading="lazy" (error)="hideBrokenImage($event)">
+                </a>
+                <ng-template #factionFallback>
+                    <img *ngIf="factionFor(unit) as fallbackFaction" class="unit-faction-fallback" [src]="fallbackFaction.logoUrl" [alt]="fallbackFaction.name + ' emblem'" loading="lazy" (error)="hideBrokenImage($event)">
+                    <span class="no-render">No unit render yet</span>
+                </ng-template>
+            </div>
+
+            <div class="unit-body">
+                <div class="unit-title-row">
+                    <div>
+                        <h2>{{ unit.unitName }}</h2>
+                        <div class="unit-code">{{ unit.code }}.odf</div>
+                    </div>
+                    <span class="class-badge">{{ readableClass(unit.classLabel) }}</span>
+                </div>
+
+                <dl class="quick-stats">
+                    <div><dt>Health</dt><dd>{{ display(unit.maxHealth) }}</dd></div>
+                    <div><dt>Ammo</dt><dd>{{ display(unit.maxAmmo) }}</dd></div>
+                    <div><dt>Cost</dt><dd>{{ display(unit.scrapCost) }}</dd></div>
+                    <div><dt>Build</dt><dd>{{ display(unit.buildTime, 's') }}</dd></div>
+                </dl>
+
+                <div class="weapon-summary" *ngIf="unit.weapons.length > 0; else noWeapons">
+                    <span>{{ unit.weapons.length }} hardpoint{{ unit.weapons.length === 1 ? '' : 's' }}</span>
+                    <span>{{ unit.weapons[0].odf || 'Empty slot' }}</span>
+                </div>
+                <ng-template #noWeapons><div class="weapon-summary muted">No weapon hardpoints reported</div></ng-template>
+
+                <details>
+                    <summary>Full unit data</summary>
+                    <dl class="full-stats">
+                        <div><dt>Faction</dt><dd>{{ factionName(unit) }}</dd></div>
+                        <div><dt>Base ODF</dt><dd>{{ display(unit.baseName) }}</dd></div>
+                        <div><dt>Class</dt><dd>{{ readableClass(unit.classLabel) }}</dd></div>
+                        <div><dt>Scrap value</dt><dd>{{ display(unit.scrapValue) }}</dd></div>
+                        <div><dt>Scrap cost</dt><dd>{{ display(unit.scrapCost) }}</dd></div>
+                        <div><dt>Build time</dt><dd>{{ display(unit.buildTime, ' seconds') }}</dd></div>
+                        <div><dt>Maximum health</dt><dd>{{ display(unit.maxHealth) }}</dd></div>
+                        <div><dt>Maximum ammo</dt><dd>{{ display(unit.maxAmmo) }}</dd></div>
+                        <div><dt>Friendly AI</dt><dd>{{ display(unit.aiName) }}</dd></div>
+                        <div><dt>Enemy AI</dt><dd>{{ display(unit.aiName2) }}</dd></div>
+                        <div><dt>Heat signature</dt><dd>{{ display(unit.heatSignature) }}</dd></div>
+                        <div><dt>Image signature</dt><dd>{{ display(unit.imageSignature) }}</dd></div>
+                        <div><dt>Radar signature</dt><dd>{{ display(unit.radarSignature) }}</dd></div>
+                        <div><dt>Weapon mask</dt><dd class="raw-value">{{ display(unit.weaponMask) }}</dd></div>
+                    </dl>
+
+                    <div class="weapon-list" *ngIf="unit.weapons.length > 0">
+                        <h3>Weapon hardpoints</h3>
+                        <div *ngFor="let weapon of unit.weapons">
+                            <span>Slot {{ weapon.slot }} · {{ display(weapon.hardpoint) }}</span>
+                            <strong>{{ display(weapon.odf) }}</strong>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </article>
+    </main>
 </div>
