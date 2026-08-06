@@ -11,8 +11,9 @@ Usage:
 
 Files are written under Web/public/vehicles and accompanied by manifest.json. Existing files are
 kept unless --force is supplied. A partial --codes run merges into the existing manifest instead of
-discarding unrelated thumbnails. The script stores source URLs for attribution and does not treat
-wiki/game artwork as covered by the repository's software license.
+discarding unrelated thumbnails. Page-specific files absent from the render category are declared
+in wiki-overrides.json and included in both full and scoped imports. The script stores source URLs
+for attribution and does not treat wiki/game artwork as covered by the repository's software license.
 """
 
 from __future__ import annotations
@@ -36,6 +37,14 @@ PRIMARY_RENDER_RE = re.compile(
     r"^(?P<code>[A-Za-z0-9]+)[ _]+render\.(?P<ext>png|jpe?g|webp)$",
     re.IGNORECASE,
 )
+
+
+@dataclass(frozen=True)
+class RenderCandidate:
+    code: str
+    title: str
+    extension: str
+    source_url: str | None = None
 
 
 @dataclass(frozen=True)
@@ -95,8 +104,49 @@ def chunked(values: list[str], size: int) -> Iterable[list[str]]:
         yield values[start:start + size]
 
 
-def discover_renders(requested_codes: set[str] | None) -> list[RenderFile]:
-    candidates: dict[str, tuple[str, str]] = {}
+def load_overrides(path: Path) -> dict[str, RenderCandidate]:
+    if not path.exists():
+        return {}
+
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError(f"Wiki override file must contain an object: {path}")
+
+    overrides: dict[str, RenderCandidate] = {}
+    for raw_code, raw_details in raw.items():
+        if not isinstance(raw_details, dict):
+            continue
+
+        code = str(raw_code).strip().lower().removesuffix(".odf")
+        title = raw_details.get("wikiTitle")
+        source_url = raw_details.get("sourceUrl")
+        if not code or not isinstance(title, str) or not title.startswith("File:"):
+            print(f"warning: ignoring malformed wiki override for {raw_code!r}", file=sys.stderr)
+            continue
+
+        parsed = title_to_code(title)
+        extension = parsed[1] if parsed else Path(title.removeprefix("File:")).suffix.lower()
+        if extension == ".jpeg":
+            extension = ".jpg"
+        if extension not in {".png", ".jpg", ".webp"}:
+            print(f"warning: unsupported override image extension for {code}: {extension}", file=sys.stderr)
+            continue
+
+        overrides[code] = RenderCandidate(
+            code=code,
+            title=title,
+            extension=extension,
+            source_url=source_url if isinstance(source_url, str) else None,
+        )
+
+    return overrides
+
+
+def discover_renders(
+    requested_codes: set[str] | None,
+    overrides: dict[str, RenderCandidate],
+) -> list[RenderFile]:
+    candidates: dict[str, RenderCandidate] = {}
     for title in iter_category_titles():
         parsed = title_to_code(title)
         if parsed is None:
@@ -104,12 +154,19 @@ def discover_renders(requested_codes: set[str] | None) -> list[RenderFile]:
         code, extension = parsed
         if requested_codes and code not in requested_codes:
             continue
-        candidates.setdefault(code, (title, extension))
+        candidates.setdefault(code, RenderCandidate(code, title, extension))
 
+    for code, candidate in overrides.items():
+        if requested_codes and code not in requested_codes:
+            continue
+        # An explicit override wins over the category entry because it can point to the more useful
+        # article page rather than only the generic file-description page.
+        candidates[code] = candidate
+
+    by_title = {candidate.title: candidate for candidate in candidates.values()}
     renders: list[RenderFile] = []
-    titles = [title for title, _extension in candidates.values()]
 
-    for title_batch in chunked(titles, 50):
+    for title_batch in chunked(list(by_title), 50):
         payload = api_request({
             "action": "query",
             "prop": "imageinfo",
@@ -124,24 +181,30 @@ def discover_renders(requested_codes: set[str] | None) -> list[RenderFile]:
             if not isinstance(title, str) or not info_items:
                 continue
 
-            parsed = title_to_code(title)
-            if parsed is None:
+            candidate = by_title.get(title)
+            if candidate is None:
                 continue
-            code, fallback_extension = parsed
+
             info = info_items[0]
             download_url = info.get("thumburl") or info.get("url")
             if not isinstance(download_url, str):
                 continue
 
             mime_extension = mimetypes.guess_extension(str(info.get("thumbmime") or info.get("mime") or ""))
-            extension = mime_extension or fallback_extension
-            if extension == ".jpe":
+            extension = mime_extension or candidate.extension
+            if extension in {".jpe", ".jpeg"}:
                 extension = ".jpg"
 
-            source_url = "https://battlezone.fandom.com/wiki/" + urllib.parse.quote(
+            file_page_url = "https://battlezone.fandom.com/wiki/" + urllib.parse.quote(
                 title.replace(" ", "_"), safe=":_()"
             )
-            renders.append(RenderFile(code, title, source_url, download_url, extension.lower()))
+            renders.append(RenderFile(
+                candidate.code,
+                title,
+                candidate.source_url or file_page_url,
+                download_url,
+                extension.lower(),
+            ))
 
         time.sleep(0.1)
 
@@ -184,6 +247,12 @@ def main() -> int:
         help="Directory copied into the Angular public root.",
     )
     parser.add_argument(
+        "--override-file",
+        type=Path,
+        default=Path("Web/public/vehicles/wiki-overrides.json"),
+        help="Page-specific file mappings that are absent from the render category.",
+    )
+    parser.add_argument(
         "--codes",
         nargs="*",
         help="Optional lowercase ODF codes to fetch; omit to fetch the full render category.",
@@ -193,12 +262,13 @@ def main() -> int:
     args = parser.parse_args()
 
     requested_codes = {code.lower().removesuffix(".odf") for code in args.codes or []} or None
-    renders = discover_renders(requested_codes)
+    overrides = load_overrides(args.override_file)
+    renders = discover_renders(requested_codes, overrides)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = args.output_dir / "manifest.json"
 
     # A scoped import is additive. A full import intentionally rebuilds the manifest from the
-    # category so stale entries disappear when a wiki file is removed or renamed.
+    # current category plus explicit overrides so stale category entries disappear safely.
     manifest = load_existing_manifest(manifest_path) if requested_codes else {}
     imported_codes: set[str] = set()
 
@@ -224,7 +294,7 @@ def main() -> int:
 
     missing = sorted(requested_codes - imported_codes) if requested_codes else []
     if missing:
-        print(f"warning: no primary wiki render found for: {', '.join(missing)}", file=sys.stderr)
+        print(f"warning: no wiki render found for: {', '.join(missing)}", file=sys.stderr)
 
     print(f"Imported {len(imported_codes)} render thumbnails; manifest contains {len(manifest)} entries.")
     return 0
