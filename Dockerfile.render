@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+
+# Build the Angular production bundle.
+FROM node:22-alpine AS web-build
+WORKDIR /src/Web
+COPY Web/package.json Web/package-lock.json ./
+RUN npm ci
+COPY Web/ ./
+RUN npm run build
+
+# Publish the ASP.NET Core API.
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS api-build
+WORKDIR /src/API
+COPY API/BZAPI.csproj ./
+RUN dotnet restore ./BZAPI.csproj
+COPY API/ ./
+RUN dotnet publish ./BZAPI.csproj -c Release -o /app/publish /p:UseAppHost=false
+
+# Run both halves as one Render web service. ASP.NET serves the Angular files from wwwroot.
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+USER app
+WORKDIR /app
+COPY --from=api-build /app/publish ./
+COPY --from=web-build /src/Web/dist/bz1-game-watcher/browser/ ./wwwroot/
+
+ENV ASPNETCORE_ENVIRONMENT=Production
+EXPOSE 10000
+
+# Render supplies PORT at runtime. The fallback also makes the image convenient to run locally.
+ENTRYPOINT ["/bin/sh", "-c", "exec dotnet BZAPI.dll --urls http://0.0.0.0:${PORT:-10000}"]

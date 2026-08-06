@@ -1,3 +1,4 @@
+using BZAPI.Bot;
 using BZAPI.Configuration;
 using BZAPI.Steam;
 using BZAPI.Storage;
@@ -10,9 +11,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<BattlezoneOptions>(builder.Configuration.GetSection(BattlezoneOptions.SectionName));
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection(SteamOptions.SectionName));
+builder.Services.Configure<LobbyBotOptions>(builder.Configuration.GetSection(LobbyBotOptions.SectionName));
 
-// The API sits behind nginx on the same origin in production, so this list is normally only used
-// by local development. Configure it under "Cors:AllowedOrigins" rather than hard-coding it.
+// The production UI is served by this same application, so CORS is normally only needed for local
+// development or an intentionally separate client. Configure allowed origins instead of hard-coding them.
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 
 builder.Services.AddCors(options =>
@@ -30,9 +32,8 @@ builder.Services.AddCors(options =>
     });
 });
 
-// nginx terminates TLS and forwards the client address; without this the app sees the proxy's
-// address and scheme. KnownProxies/KnownIPNetworks are cleared because the proxy's container IP is
-// not fixed — safe here only because the API is not published outside the compose network.
+// Production hosts such as Render terminate TLS in front of the application. Trust the forwarding
+// headers supplied by that proxy so generated URLs and request metadata use the public scheme.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -44,6 +45,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILobbyStore, LobbyStore>();
 builder.Services.AddSingleton<ISteamAvatarProvider, SteamAvatarProvider>();
+builder.Services.AddSingleton<LobbyBotCoordinator>();
 builder.Services.AddHostedService<BZ98LobbyWatcher>();
 
 builder.Services.AddControllers();
@@ -67,17 +69,21 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler();
+
+    // Dockerfile.render copies the Angular production build into wwwroot. Hosting it here keeps the
+    // browser and API same-origin and lets one Render web service wake and deploy as a single unit.
+    app.UseDefaultFiles();
+    app.UseStaticFiles();
 }
 
 app.UseRouting();
-
 app.UseCors(CorsPolicyName);
 
 app.MapControllers();
 
-// Lets the container (and anyone debugging a stale lobby list) see whether the watcher is
-// actually receiving updates.
-app.MapGet("/api/health", (ILobbyStore store) =>
+// Render uses this path for deploy and runtime health checks. Lobby data can legitimately still be
+// empty immediately after a cold start, so process health is reported separately from snapshot age.
+app.MapGet("/api/health", (ILobbyStore store, LobbyBotCoordinator bot) =>
 {
     var snapshot = store.Current;
 
@@ -85,8 +91,15 @@ app.MapGet("/api/health", (ILobbyStore store) =>
     {
         status = "ok",
         lobbyCount = snapshot.Lobbies.Count,
-        lastUpdatedUtc = snapshot.LastUpdatedUtc
+        lastUpdatedUtc = snapshot.LastUpdatedUtc,
+        lobbyBot = bot.Status
     });
 });
+
+if (!app.Environment.IsDevelopment())
+{
+    // Angular owns all non-file routes. API and static-file endpoints above remain more specific.
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();

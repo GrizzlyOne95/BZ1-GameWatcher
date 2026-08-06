@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using BZAPI.Bot;
 using BZAPI.Configuration;
 using BZAPI.Models;
 using BZAPI.Steam;
@@ -20,6 +21,7 @@ namespace BZAPI.Websocket
         private readonly ILobbyStore _store;
         private readonly ISteamAvatarProvider _avatars;
         private readonly BattlezoneOptions _options;
+        private readonly LobbyBotCoordinator _bot;
         private readonly ILogger<BZ98LobbyWatcher> _logger;
 
         /// <summary>
@@ -35,11 +37,13 @@ namespace BZAPI.Websocket
             ILobbyStore store,
             ISteamAvatarProvider avatars,
             IOptions<BattlezoneOptions> options,
+            LobbyBotCoordinator bot,
             ILogger<BZ98LobbyWatcher> logger)
         {
             _store = store;
             _avatars = avatars;
             _options = options.Value;
+            _bot = bot;
             _logger = logger;
         }
 
@@ -62,15 +66,19 @@ namespace BZAPI.Websocket
             using var reconnections = client.ReconnectionHappened.Subscribe(info =>
             {
                 _logger.LogInformation("Websocket connected ({ReconnectionType}); authorising.", info.Type);
+                _bot.OnSocketConnected();
                 SendAuthorization(client);
             });
 
             using var disconnections = client.DisconnectionHappened.Subscribe(info =>
+            {
+                _bot.OnSocketDisconnected();
                 _logger.LogWarning(
                     info.Exception,
                     "Websocket disconnected ({DisconnectionType}, close status {CloseStatus}).",
                     info.Type,
-                    info.CloseStatus));
+                    info.CloseStatus);
+            });
 
             using var subscription = client.MessageReceived.Subscribe(message =>
             {
@@ -82,7 +90,9 @@ namespace BZAPI.Websocket
 
             await client.Start();
 
-            await ProcessMessagesAsync(client, stoppingToken);
+            await Task.WhenAll(
+                ProcessMessagesAsync(client, stoppingToken),
+                _bot.RunAsync(client, stoppingToken));
         }
 
         private async Task ProcessMessagesAsync(IWebsocketClient client, CancellationToken stoppingToken)
@@ -127,11 +137,15 @@ namespace BZAPI.Websocket
             {
                 case nameof(WebsocketMessageType.OnAuthorization):
                     EnterLounge(client);
+                    _bot.OnAuthorized(client, text);
                     break;
 
                 case nameof(WebsocketMessageType.OnLobbyListChanged):
+                case "OnLobbyList":
+                case "OnGetLobbyList":
                 case nameof(WebsocketMessageType.OnLobbyChanged):
-                    await HandleLobbyUpdateAsync(envelope.Type, text, cancellationToken);
+                case "OnLobbyUpdate":
+                    await HandleLobbyUpdateAsync(client, envelope.Type, text, cancellationToken);
                     break;
 
                 case nameof(WebsocketMessageType.OnLobbyRemoved):
@@ -142,13 +156,33 @@ namespace BZAPI.Websocket
                         _store.Remove(removal.Data.Id);
                     }
 
+                    _bot.OnLobbyRemoved(text);
+                    break;
+
+                case "OnLobbyJoined":
+                    _bot.OnLobbyJoined(text);
+                    break;
+
+                case "OnLobbyCreated":
+                    _bot.OnLobbyCreated(client, text);
+                    break;
+
+                case "OnLobbyMemberListChanged":
+                    _bot.OnMemberListChanged(client, text);
                     break;
             }
         }
 
-        private async Task HandleLobbyUpdateAsync(string messageType, string text, CancellationToken cancellationToken)
+        private async Task HandleLobbyUpdateAsync(
+            IWebsocketClient client,
+            string messageType,
+            string text,
+            CancellationToken cancellationToken)
         {
-            var isFullList = messageType == nameof(WebsocketMessageType.OnLobbyListChanged);
+            var isFullList = messageType is
+                nameof(WebsocketMessageType.OnLobbyListChanged) or
+                "OnLobbyList" or
+                "OnGetLobbyList";
 
             var message = JsonConvert.DeserializeObject<WebsocketLobbyMessage>(text);
             var lobbies = message?.Data?.BZ98Lobbies?.Values.Where(lobby => lobby is not null).ToList();
@@ -159,6 +193,7 @@ namespace BZAPI.Websocket
                 if (isFullList)
                 {
                     _store.Replace([]);
+                    _bot.OnLobbySnapshot(client, [], true);
                 }
 
                 return;
@@ -170,6 +205,8 @@ namespace BZAPI.Websocket
             {
                 await PopulateLobbyAsync(lobby, cancellationToken);
             }
+
+            _bot.OnLobbySnapshot(client, lobbies, isFullList);
 
             if (isFullList)
             {
