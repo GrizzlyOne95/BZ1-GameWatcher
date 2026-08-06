@@ -1,0 +1,50 @@
+name: Refresh vehicle renders
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - agent/cache-unit-renders
+    paths:
+      - .github/workflows/refresh-vehicle-renders.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-vehicle-renders-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refresh committed thumbnails
+        run: python tools/fetch-battlezone-wiki-renders.py --force
+
+      - name: Regenerate browser image lookup
+        run: node Web/tools/generate-vehicle-images.mjs
+
+      - name: Verify local-only manifest
+        run: python tools/fetch-battlezone-wiki-renders.py --verify-only
+
+      - name: Commit refreshed assets
+        shell: bash
+        run: |
+          git add -A -- Web/public/vehicles Web/src/app/data/stock-vehicle-images.generated.ts
+          if git diff --cached --quiet; then
+            echo "Vehicle render cache is already current."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Cache Battlezone vehicle render thumbnails"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
