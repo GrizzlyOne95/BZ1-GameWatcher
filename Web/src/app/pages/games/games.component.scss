@@ -324,7 +324,7 @@
     min-width: 0;
 }
 
-.player-summary img,
+.player-avatar,
 .avatar-fallback {
     width: 48px;
     height: 48px;
@@ -332,7 +332,7 @@
     flex-shrink: 0;
 }
 
-.player-summary img {
+.player-avatar {
     object-fit: cover;
     background: #171b1f;
 }
@@ -367,6 +367,63 @@
     color: #8f9aa5;
     font-size: 0.78rem;
     overflow-wrap: anywhere;
+}
+
+.vehicle-thumbnail-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    height: 48px;
+    padding: 0.15rem;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid #3b4650;
+    border-radius: 0.42rem;
+    background: radial-gradient(circle at center, #353d44 0%, #171b1f 74%);
+}
+
+.vehicle-thumbnail-link:hover {
+    border-color: #6685a0;
+}
+
+.vehicle-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.vehicle-detail-image-link {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 250px);
+    min-height: 120px;
+    margin: 0 0 0.4rem;
+    padding: 0.6rem;
+    border: 1px solid #343d45;
+    border-radius: 0.55rem;
+    color: #9fb1c0;
+    font-size: 0.7rem;
+    text-decoration: none;
+    background: radial-gradient(circle at center, #353d44 0%, #171b1f 76%);
+}
+
+.vehicle-detail-image-link:hover {
+    border-color: #6685a0;
+    color: #dce9f4;
+}
+
+.vehicle-detail-image {
+    display: block;
+    max-width: 100%;
+    max-height: 150px;
+    object-fit: contain;
+}
+
+.vehicle-detail-image-link span {
+    margin-top: 0.35rem;
 }
 
 .mini-badge {
@@ -518,6 +575,15 @@
 
     .player-summary {
         align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .player-identity {
+        min-width: calc(100% - 60px);
+    }
+
+    .vehicle-thumbnail-link {
+        margin-left: 60px;
     }
 
     .steam-link {
