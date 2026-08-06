@@ -150,6 +150,17 @@ describe('GamesComponent', () => {
         teardown();
     }));
 
+    it('builds a Steam Workshop link for numeric mod IDs', () => {
+        expect(fixture.componentInstance.workshopUrl('2299335165'))
+            .toBe('https://steamcommunity.com/sharedfiles/filedetails/?id=2299335165');
+    });
+
+    it('does not link stock or local mod labels', () => {
+        expect(fixture.componentInstance.workshopUrl('stock')).toBeNull();
+        expect(fixture.componentInstance.workshopUrl('')).toBeNull();
+        expect(fixture.componentInstance.workshopUrl(null)).toBeNull();
+    });
+
     it('keeps polling after a failed request', fakeAsync(() => {
         fixture.detectChanges();
         tick();
