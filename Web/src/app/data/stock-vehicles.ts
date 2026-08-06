@@ -23,6 +23,7 @@ export interface StockVehicleDefinition {
     radarSignature: number | null;
     weaponMask: string | null;
     thumbnailUrl: string | null;
+    thumbnailSourceUrl: string | null;
     weapons: StockVehicleWeapon[];
 }
 
