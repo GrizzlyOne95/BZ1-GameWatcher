@@ -20,8 +20,8 @@ public sealed record LobbyBotStatus(
     DateTimeOffset? LastActionUtc);
 
 /// <summary>
-/// Owns the optional interactive lobby-bot state while <see cref="Websocket.BZ98LobbyWatcher"/>
-/// continues to own the underlying socket and public lobby snapshot.
+/// Owns optional interactive bot behavior while <see cref="BZAPI.Websocket.BZ98LobbyWatcher"/>
+/// continues to own the socket and public lobby snapshot.
 /// </summary>
 public sealed class LobbyBotCoordinator
 {
@@ -43,6 +43,7 @@ public sealed class LobbyBotCoordinator
     private bool _hasTargetUserSnapshot;
     private bool _joinPending;
     private bool _createPending;
+    private bool _configurationWarningLogged;
     private DateTimeOffset _lastClaimAttemptUtc = DateTimeOffset.MinValue;
     private DateTimeOffset _lastAnnouncementUtc = DateTimeOffset.MinValue;
     private string? _lastAction;
@@ -58,13 +59,27 @@ public sealed class LobbyBotCoordinator
 
     public bool Enabled => _options.Enabled;
 
+    private bool Configured =>
+        !string.IsNullOrWhiteSpace(_options.PlayerName) &&
+        !string.IsNullOrWhiteSpace(_options.LobbyName);
+
     public LobbyBotStatus Status
     {
         get
         {
             lock (_sync)
             {
-                return BuildStatusLocked();
+                return new LobbyBotStatus(
+                    Enabled,
+                    Configured,
+                    _connected,
+                    _options.PlayerName,
+                    _options.LobbyName,
+                    _ownId,
+                    _currentLobbyId,
+                    _targetLobbyId,
+                    _lastAction,
+                    _lastActionUtc);
             }
         }
     }
@@ -111,14 +126,14 @@ public sealed class LobbyBotCoordinator
             var data = JObject.Parse(messageText)["data"] as JObject;
             if (ReadBoolean(data?["success"]) is false)
             {
-                _logger.LogWarning("Lobby bot authorization was rejected.");
+                RecordAction("Lobby bot authorization was rejected.");
                 return;
             }
 
             var ownId = data?["id"]?.ToString();
             if (string.IsNullOrWhiteSpace(ownId))
             {
-                _logger.LogWarning("Lobby bot authorization succeeded without returning a user ID.");
+                RecordAction("Authorization succeeded without returning a bot user ID.");
                 return;
             }
 
@@ -147,49 +162,94 @@ public sealed class LobbyBotCoordinator
             return;
         }
 
-        var target = lobbies.FirstOrDefault(IsTargetLobby);
-        BZ98Lobby? current = null;
         string? ownId;
+        int? previousCurrentId;
+        int? previousTargetId;
 
         lock (_sync)
         {
             ownId = _ownId;
+            previousCurrentId = _currentLobbyId;
+            previousTargetId = _targetLobbyId;
         }
 
-        if (!string.IsNullOrWhiteSpace(ownId))
-        {
-            current = lobbies.FirstOrDefault(lobby => LobbyContainsUser(lobby, ownId));
-        }
+        var targetUpdate = lobbies.FirstOrDefault(IsTargetLobby);
+        var currentUpdate = string.IsNullOrWhiteSpace(ownId)
+            ? null
+            : lobbies.FirstOrDefault(lobby => LobbyContainsUser(lobby, ownId));
+        var previousCurrentUpdate = previousCurrentId is null
+            ? null
+            : lobbies.FirstOrDefault(lobby => lobby.Id == previousCurrentId);
+        var previousTargetUpdate = previousTargetId is null
+            ? null
+            : lobbies.FirstOrDefault(lobby => lobby.Id == previousTargetId);
 
         List<(string Id, string Name)> welcomeCandidates = [];
         int? joinLobbyId = null;
         var shouldCreate = false;
+        int? effectiveTargetId;
+        int? effectiveCurrentId;
 
         lock (_sync)
         {
             if (isFullList)
             {
                 _hasSeenFullLobbyList = true;
+                _targetLobbyId = targetUpdate?.Id;
+                _currentLobbyId = currentUpdate?.Id;
+            }
+            else
+            {
+                if (targetUpdate is not null)
+                {
+                    _targetLobbyId = targetUpdate.Id;
+                }
+                else if (previousTargetUpdate is not null && !IsTargetLobby(previousTargetUpdate))
+                {
+                    _targetLobbyId = null;
+                }
+
+                if (currentUpdate is not null)
+                {
+                    _currentLobbyId = currentUpdate.Id;
+                }
+                else if (
+                    previousCurrentUpdate is not null &&
+                    !string.IsNullOrWhiteSpace(ownId) &&
+                    !LobbyContainsUser(previousCurrentUpdate, ownId))
+                {
+                    _currentLobbyId = null;
+                }
             }
 
-            _targetLobbyId = target?.Id;
-            _currentLobbyId = current?.Id;
+            effectiveTargetId = _targetLobbyId;
+            effectiveCurrentId = _currentLobbyId;
 
-            if (target is not null)
+            if (targetUpdate is not null)
             {
                 _createPending = false;
             }
 
-            if (current is not null)
+            if (currentUpdate is not null)
             {
                 _joinPending = false;
             }
 
-            if (target is not null && current?.Id == target.Id)
+            var targetLobbyUpdate = lobbies.FirstOrDefault(lobby => lobby.Id == effectiveTargetId);
+            var targetMembershipWasUpdated = targetLobbyUpdate is not null;
+
+            if (
+                targetLobbyUpdate is not null &&
+                effectiveTargetId is not null &&
+                effectiveCurrentId == effectiveTargetId)
             {
-                var currentUsers = GetUserIdentities(target)
-                    .Where(user => !IsOwnUser(user.Id))
-                    .ToDictionary(user => user.Id, user => user.Name, StringComparer.OrdinalIgnoreCase);
+                var currentUsers = GetUserIdentities(targetLobbyUpdate)
+                    .Where(user => !string.Equals(user.Id, ownId, StringComparison.OrdinalIgnoreCase))
+                    .GroupBy(user => user.Id, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => group.First().Name,
+                        StringComparer.OrdinalIgnoreCase);
 
                 if (_hasTargetUserSnapshot)
                 {
@@ -202,22 +262,23 @@ public sealed class LobbyBotCoordinator
                 _knownTargetUsers = currentUsers.Keys.ToHashSet(StringComparer.OrdinalIgnoreCase);
                 _hasTargetUserSnapshot = true;
             }
-            else
+            else if (isFullList || targetMembershipWasUpdated)
             {
                 _knownTargetUsers.Clear();
                 _hasTargetUserSnapshot = false;
             }
 
-            if (current is null && target is not null && !_joinPending)
+            var canChooseLobby = isFullList || targetUpdate is not null;
+            if (canChooseLobby && effectiveCurrentId is null && effectiveTargetId is not null && !_joinPending)
             {
                 _joinPending = true;
-                joinLobbyId = target.Id;
+                joinLobbyId = effectiveTargetId;
             }
             else if (
-                current is null &&
-                target is null &&
+                isFullList &&
+                effectiveCurrentId is null &&
+                effectiveTargetId is null &&
                 _options.AutoClaim &&
-                _hasSeenFullLobbyList &&
                 !_createPending &&
                 DateTimeOffset.UtcNow - _lastClaimAttemptUtc >= TimeSpan.FromSeconds(10))
             {
@@ -225,10 +286,14 @@ public sealed class LobbyBotCoordinator
                 _lastClaimAttemptUtc = DateTimeOffset.UtcNow;
                 shouldCreate = true;
             }
-            else if (current is not null && target is not null && current.Id != target.Id)
+            else if (
+                isFullList &&
+                effectiveCurrentId is not null &&
+                effectiveTargetId is not null &&
+                effectiveCurrentId != effectiveTargetId)
             {
                 RecordActionLocked(
-                    $"Bot is already in lobby {current.Id}; target lobby {target.Id} was not joined.");
+                    $"Bot is already in lobby {effectiveCurrentId}; target lobby {effectiveTargetId} was not joined.");
             }
         }
 
@@ -243,18 +308,16 @@ public sealed class LobbyBotCoordinator
 
         foreach (var user in welcomeCandidates)
         {
-            TrySendWelcome(client, target?.Id, user.Id, user.Name);
+            TrySendWelcome(client, effectiveTargetId, user.Id, user.Name);
         }
     }
 
     public void OnLobbyJoined(string messageText)
     {
-        if (!CanRun())
+        if (CanRun())
         {
-            return;
+            UpdateCurrentLobbyFromResult(messageText, "Joined lobby");
         }
-
-        UpdateCurrentLobbyFromResult(messageText, "Joined lobby");
     }
 
     public void OnLobbyCreated(IWebsocketClient client, string messageText)
@@ -411,14 +474,21 @@ public sealed class LobbyBotCoordinator
             return false;
         }
 
-        if (!string.IsNullOrWhiteSpace(_options.PlayerName) &&
-            !string.IsNullOrWhiteSpace(_options.LobbyName))
+        if (Configured)
         {
             return true;
         }
 
-        _logger.LogWarning(
-            "LobbyBot is enabled but PlayerName or LobbyName is empty; bot automation is disabled.");
+        lock (_sync)
+        {
+            if (!_configurationWarningLogged)
+            {
+                _configurationWarningLogged = true;
+                _logger.LogWarning(
+                    "LobbyBot is enabled but PlayerName or LobbyName is empty; bot automation is disabled.");
+            }
+        }
+
         return false;
     }
 
@@ -532,7 +602,7 @@ public sealed class LobbyBotCoordinator
         string userId,
         string playerName)
     {
-        if (string.IsNullOrWhiteSpace(_options.WelcomeMessage) || IsOwnUser(userId))
+        if (string.IsNullOrWhiteSpace(_options.WelcomeMessage))
         {
             return;
         }
@@ -540,7 +610,11 @@ public sealed class LobbyBotCoordinator
         var now = DateTimeOffset.UtcNow;
         lock (_sync)
         {
-            if (lobbyId is null || lobbyId != _currentLobbyId || lobbyId != _targetLobbyId)
+            if (
+                string.Equals(_ownId, userId, StringComparison.OrdinalIgnoreCase) ||
+                lobbyId is null ||
+                lobbyId != _currentLobbyId ||
+                lobbyId != _targetLobbyId)
             {
                 return;
             }
@@ -563,12 +637,10 @@ public sealed class LobbyBotCoordinator
 
     private void SendChat(IWebsocketClient client, string message, string action)
     {
-        if (string.IsNullOrWhiteSpace(message))
+        if (!string.IsNullOrWhiteSpace(message))
         {
-            return;
+            Send(client, new { type = "DoSendChat", content = message.Trim() }, action);
         }
-
-        Send(client, new { type = "DoSendChat", content = message.Trim() }, action);
     }
 
     private void Send(IWebsocketClient client, object payload, string? action)
@@ -632,23 +704,24 @@ public sealed class LobbyBotCoordinator
                 continue;
             }
 
-            var id = string.IsNullOrWhiteSpace(pair.Value.Id) ? pair.Key : pair.Value.Id;
+            var id = pair.Value.Id;
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                id = pair.Key;
+            }
+
             if (string.IsNullOrWhiteSpace(id))
             {
                 continue;
             }
 
-            var name = string.IsNullOrWhiteSpace(pair.Value.Name) ? id : pair.Value.Name;
-            yield return (id, name);
-        }
-    }
+            var name = pair.Value.Name;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                name = id;
+            }
 
-    private bool IsOwnUser(string userId)
-    {
-        lock (_sync)
-        {
-            return !string.IsNullOrWhiteSpace(_ownId) &&
-                   string.Equals(_ownId, userId, StringComparison.OrdinalIgnoreCase);
+            yield return (id, name);
         }
     }
 
@@ -677,20 +750,6 @@ public sealed class LobbyBotCoordinator
         _lastAction = action;
         _lastActionUtc = DateTimeOffset.UtcNow;
     }
-
-    private LobbyBotStatus BuildStatusLocked() =>
-        new(
-            Enabled,
-            !string.IsNullOrWhiteSpace(_options.PlayerName) &&
-            !string.IsNullOrWhiteSpace(_options.LobbyName),
-            _connected,
-            _options.PlayerName,
-            _options.LobbyName,
-            _ownId,
-            _currentLobbyId,
-            _targetLobbyId,
-            _lastAction,
-            _lastActionUtc);
 
     private static bool? ReadBoolean(JToken? token)
     {
