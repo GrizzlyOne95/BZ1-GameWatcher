@@ -19,7 +19,8 @@ export const GENERATED_STOCK_VEHICLES: Readonly<Record<string, StockVehicleDefin
         imageSignature: 2.7,
         radarSignature: 0.3,
         weaponMask: '00001',
-        thumbnailUrl: null,
+        thumbnailUrl: 'https://static.wikia.nocookie.net/battlezone/images/0/0e/Bvrdev_render.png/revision/latest/scale-to-width-down/300?cb=20150805115718',
+        thumbnailSourceUrl: 'https://battlezone.fandom.com/wiki/Red_Devil?file=Bvrdev_render.png',
         weapons: [
             { slot: 1, hardpoint: 'GC1', odf: 'grktbomb' },
             { slot: 2, hardpoint: 'GR1', odf: 'grktbomb' },
