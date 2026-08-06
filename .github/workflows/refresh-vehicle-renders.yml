@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - agent/cache-unit-renders
     paths:
       - .github/workflows/refresh-vehicle-renders.yml
