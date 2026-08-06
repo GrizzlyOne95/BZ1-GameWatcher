@@ -8,8 +8,6 @@ on:
       - "tools/fetch-battlezone-wiki-renders.py"
       - ".github/workflows/vehicle-catalog.yml"
   push:
-    branches:
-      - main
     paths:
       - "Web/**"
       - "tools/build-stock-vehicle-catalog.py"
