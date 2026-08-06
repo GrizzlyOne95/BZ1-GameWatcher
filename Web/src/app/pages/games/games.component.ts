@@ -39,6 +39,9 @@ export class GamesComponent implements OnInit, OnDestroy {
     /** Set when the most recent refresh failed, so the page can say so instead of going blank. */
     loadFailed = false;
 
+    /** Local timestamp of the most recent successful browser refresh. */
+    lastRefreshedAt: Date | null = null;
+
     constructor(private readonly bz98Service: BZ98Service) {
     }
 
@@ -68,7 +71,7 @@ export class GamesComponent implements OnInit, OnDestroy {
     }
 
     joinGame(lobby: BZ98LobbyView): void {
-        window.location.href = buildSteamJoinUrl(lobby.id);
+        window.location.href = lobby.directJoinUrl || buildSteamJoinUrl(lobby.id);
     }
 
     async shareToDiscord(lobby: BZ98LobbyView): Promise<void> {
@@ -80,9 +83,76 @@ export class GamesComponent implements OnInit, OnDestroy {
         window.location.href = environment.discordShareChannelUrl;
     }
 
+    trackLobby(_index: number, lobby: BZ98LobbyView): number {
+        return lobby.id;
+    }
+
+    trackUser(index: number, user: BZ98User): string | number {
+        return user.id || user.steamCleanId || user.name || index;
+    }
+
+    display(value: string | number | null | undefined): string {
+        if (value === null || value === undefined || value === '') {
+            return 'Not reported';
+        }
+
+        return String(value);
+    }
+
+    yesNo(value: boolean | null | undefined): string {
+        return value ? 'Yes' : 'No';
+    }
+
+    gameTypeLabel(gameType: string | null | undefined): string {
+        switch (gameType) {
+            case '0':
+                return 'MPI';
+            case '1':
+                return 'Strategy';
+            default:
+                return this.display(gameType);
+        }
+    }
+
+    launchStatus(lobby: BZ98LobbyView): string {
+        return lobby.metaData?.launched === '1' ? 'In progress' : 'In lobby';
+    }
+
+    lobbyDisplayName(lobby: BZ98LobbyView): string {
+        const rawName = lobby.metaData?.name;
+        if (!rawName) {
+            return lobby.isChat ? `Chat lobby ${lobby.id}` : `Game ${lobby.id}`;
+        }
+
+        return rawName
+            .replace(/^~game~(?:pub|pri)~\*?~/i, '')
+            .replace(/^~chat~(?:pub|pri)~~/i, '') || rawName;
+    }
+
+    isHost(lobby: BZ98LobbyView, user: BZ98User): boolean {
+        return Boolean(user.id && (user.id === lobby.owner || user.id === lobby.host?.id));
+    }
+
+    userPlatform(user: BZ98User): string {
+        if (user.isSteam) {
+            return 'Steam';
+        }
+
+        if (user.isGOG) {
+            return 'GOG';
+        }
+
+        if (user.isBB) {
+            return 'Battlezone';
+        }
+
+        return this.display(user.authType);
+    }
+
     private applyLobbies(lobbies: BZ98Lobby[]): void {
         this.hasLoaded = true;
         this.loadFailed = false;
+        this.lastRefreshedAt = new Date();
 
         // The API always returns an array, but a proxy error page or an older API could still
         // deliver something else; treat anything unexpected as "no lobbies" rather than throwing.
@@ -97,13 +167,14 @@ export class GamesComponent implements OnInit, OnDestroy {
         const users = lobby.users ? Object.values(lobby.users) : [];
         const oddTeamUsers: BZ98User[] = [];
         const evenTeamUsers: BZ98User[] = [];
+        const unassignedTeamUsers: BZ98User[] = [];
 
         for (const user of users) {
             const team = Number(user.metaData?.team);
 
-            // A user whose team has not been reported yet shows in the right-hand column, which is
-            // where the previous `!(undefined % 2)` check put them.
-            if (Number.isFinite(team) && team % 2 !== 0) {
+            if (!Number.isFinite(team) || !user.metaData?.team) {
+                unassignedTeamUsers.push(user);
+            } else if (team % 2 !== 0) {
                 oddTeamUsers.push(user);
             } else {
                 evenTeamUsers.push(user);
@@ -117,6 +188,9 @@ export class GamesComponent implements OnInit, OnDestroy {
             users,
             oddTeamUsers,
             evenTeamUsers,
+            unassignedTeamUsers,
+            apiStats: lobby.stats,
+            parsedStats,
             stats: parsedStats ?? lobby.stats
         };
     }
