@@ -90,7 +90,7 @@ describe('GamesComponent', () => {
         teardown();
     }));
 
-    it('splits users into odd and even team columns', fakeAsync(() => {
+    it('splits users into odd, even, and unassigned team columns', fakeAsync(() => {
         load([
             lobby({
                 users: {
@@ -104,7 +104,8 @@ describe('GamesComponent', () => {
         const view = fixture.componentInstance.BZ98Lobbies[0];
 
         expect(view.oddTeamUsers.map(u => u.name)).toEqual(['odd']);
-        expect(view.evenTeamUsers.map(u => u.name)).toEqual(['even', 'unassigned']);
+        expect(view.evenTeamUsers.map(u => u.name)).toEqual(['even']);
+        expect(view.unassignedTeamUsers.map(u => u.name)).toEqual(['unassigned']);
 
         teardown();
     }));
@@ -115,23 +116,36 @@ describe('GamesComponent', () => {
         ]);
 
         // Previously this produced a stats object full of undefined fields.
+        expect(fixture.componentInstance.BZ98Lobbies[0].parsedStats).toBeNull();
         expect(fixture.componentInstance.BZ98Lobbies[0].stats).toBeNull();
 
         teardown();
     }));
 
-    it('parses a full game settings string', fakeAsync(() => {
+    it('parses a full game settings string while preserving API stats', fakeAsync(() => {
+        const apiStats = {
+            mapFile: 'api-map.bzn',
+            crc32: 'API',
+            mod: 'api-mod',
+            attributes: null
+        };
+
         load([
-            lobby({ metaData: { gameSettings: 'x*bunker.bzn*ABC123*stock*1*0*1*0*5' } as never })
+            lobby({
+                metaData: { gameSettings: 'x*bunker.bzn*ABC123*stock*1*0*1*0*5' } as never,
+                stats: apiStats
+            })
         ]);
 
-        const stats = fixture.componentInstance.BZ98Lobbies[0].stats;
+        const view = fixture.componentInstance.BZ98Lobbies[0];
 
-        expect(stats?.mapFile).toBe('bunker.bzn');
-        expect(stats?.crc32).toBe('ABC123');
-        expect(stats?.attributes?.satellite).toBeTrue();
-        expect(stats?.attributes?.barracks).toBeFalse();
-        expect(stats?.attributes?.lives).toBe('5');
+        expect(view.parsedStats?.mapFile).toBe('bunker.bzn');
+        expect(view.parsedStats?.crc32).toBe('ABC123');
+        expect(view.parsedStats?.attributes?.satellite).toBeTrue();
+        expect(view.parsedStats?.attributes?.barracks).toBeFalse();
+        expect(view.parsedStats?.attributes?.lives).toBe('5');
+        expect(view.apiStats).toEqual(apiStats);
+        expect(view.stats).toBe(view.parsedStats);
 
         teardown();
     }));
