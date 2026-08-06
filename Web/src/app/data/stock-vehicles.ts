@@ -1,5 +1,46 @@
 import { GENERATED_STOCK_VEHICLES } from './stock-vehicles.generated';
 
+export type StockFactionKey = 'nsdf' | 'blackDog' | 'cca' | 'cra';
+
+export interface StockFactionDefinition {
+    key: StockFactionKey;
+    name: string;
+    prefix: string;
+    logoUrl: string;
+    sourceUrl: string;
+}
+
+export const STOCK_FACTIONS: Readonly<Record<StockFactionKey, StockFactionDefinition>> = Object.freeze({
+    nsdf: {
+        key: 'nsdf',
+        name: 'NSDF',
+        prefix: 'av',
+        logoUrl: 'https://drive.google.com/uc?export=view&id=1XHHD9jHNMkZDkir606R_Zd3r5xPSehGQ',
+        sourceUrl: 'https://drive.google.com/file/d/1XHHD9jHNMkZDkir606R_Zd3r5xPSehGQ/view'
+    },
+    blackDog: {
+        key: 'blackDog',
+        name: 'Black Dog',
+        prefix: 'bv',
+        logoUrl: 'https://drive.google.com/uc?export=view&id=18BR_5bKdT0w9uVPbhlVYvtqc-rvHWqd-',
+        sourceUrl: 'https://drive.google.com/file/d/18BR_5bKdT0w9uVPbhlVYvtqc-rvHWqd-/view'
+    },
+    cca: {
+        key: 'cca',
+        name: 'CCA',
+        prefix: 'sv',
+        logoUrl: 'https://drive.google.com/uc?export=view&id=1pNEXq1wXUnN5eV4GkpQgBwXXeyrll6Kr',
+        sourceUrl: 'https://drive.google.com/file/d/1pNEXq1wXUnN5eV4GkpQgBwXXeyrll6Kr/view'
+    },
+    cra: {
+        key: 'cra',
+        name: 'CRA',
+        prefix: 'cv',
+        logoUrl: 'https://drive.google.com/uc?export=view&id=1hote8N2Ix3NiczEHqR6VkJcFZi3NC1yi',
+        sourceUrl: 'https://drive.google.com/file/d/1hote8N2Ix3NiczEHqR6VkJcFZi3NC1yi/view'
+    }
+});
+
 export interface StockVehicleWeapon {
     slot: number;
     hardpoint: string | null;
@@ -9,6 +50,7 @@ export interface StockVehicleWeapon {
 export interface StockVehicleDefinition {
     code: string;
     unitName: string;
+    faction: StockFactionKey | null;
     baseName: string | null;
     classLabel: string | null;
     scrapValue: number | null;
@@ -40,4 +82,10 @@ export const STOCK_VEHICLES: Readonly<Record<string, StockVehicleDefinition>> =
 export function findStockVehicle(code: string | null | undefined): StockVehicleDefinition | null {
     const normalizedCode = code?.trim().toLowerCase().replace(/\.odf$/i, '');
     return normalizedCode ? STOCK_VEHICLES[normalizedCode] ?? null : null;
+}
+
+export function findStockFaction(
+    faction: StockFactionKey | null | undefined
+): StockFactionDefinition | null {
+    return faction ? STOCK_FACTIONS[faction] : null;
 }
