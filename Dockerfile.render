@@ -1,12 +1,23 @@
 # syntax=docker/dockerfile:1
 
-# Build the Angular production bundle. Vehicle renders are checked-in static assets under
-# Web/public/vehicles, so deploys never depend on the Battlezone Wiki being reachable.
+# Prefer the committed vehicle render cache. Until the repository has been seeded, a build may
+# perform one best-effort refresh; once the manifest validates, future builds remain fully local.
+FROM python:3.12-alpine AS vehicle-assets
+WORKDIR /src
+COPY tools/fetch-battlezone-wiki-renders.py ./tools/
+COPY Web/public/vehicles/ ./Web/public/vehicles/
+COPY Web/src/app/data/stock-vehicles.rows-*.generated.ts ./Web/src/app/data/
+RUN python tools/fetch-battlezone-wiki-renders.py --verify-only \
+    || python tools/fetch-battlezone-wiki-renders.py --force \
+    || echo "warning: vehicle render refresh failed; building with the committed cache"
+
+# Build the Angular production bundle.
 FROM node:22-alpine AS web-build
 WORKDIR /src/Web
 COPY Web/package.json Web/package-lock.json ./
 RUN npm ci
 COPY Web/ ./
+COPY --from=vehicle-assets /src/Web/public/vehicles/ ./public/vehicles/
 RUN npm run build
 
 # Publish the ASP.NET Core API.
