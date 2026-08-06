@@ -73,7 +73,17 @@ else
     // Dockerfile.render copies the Angular production build into wwwroot. Hosting it here keeps the
     // browser and API same-origin and lets one Render web service wake and deploy as a single unit.
     app.UseDefaultFiles();
-    app.UseStaticFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        OnPrepareResponse = context =>
+        {
+            var path = context.Context.Request.Path;
+            if (path.StartsWithSegments("/vehicles") || path.StartsWithSegments("/factions"))
+            {
+                context.Context.Response.Headers.CacheControl = "public, max-age=86400";
+            }
+        }
+    });
 }
 
 app.UseRouting();
