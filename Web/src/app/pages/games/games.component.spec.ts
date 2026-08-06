@@ -161,6 +161,37 @@ describe('GamesComponent', () => {
         expect(fixture.componentInstance.workshopUrl(null)).toBeNull();
     });
 
+    it('shows a friendly name while preserving a known vehicle ODF code', () => {
+        expect(fixture.componentInstance.vehicleLabel('bvrmpa')).toBe('Red Devil (bvrmpa)');
+        expect(fixture.componentInstance.stockVehicle('BVRMPA.ODF')?.maxHealth).toBe(1800);
+    });
+
+    it('leaves unknown and modded vehicle codes unchanged', () => {
+        expect(fixture.componentInstance.vehicleLabel('custom_tank')).toBe('custom_tank');
+        expect(fixture.componentInstance.stockVehicle('custom_tank')).toBeNull();
+        expect(fixture.componentInstance.vehicleLabel(null)).toBe('Not reported');
+    });
+
+    it('renders expandable ODF details for a known vehicle', fakeAsync(() => {
+        load([
+            lobby({
+                userCount: 1,
+                users: {
+                    S1: user({
+                        name: 'Pilot',
+                        metaData: { team: '1', vehicle: 'bvrmpa' } as never
+                    })
+                }
+            })
+        ]);
+
+        const text = fixture.nativeElement.textContent as string;
+        expect(text).toContain('Red Devil (bvrmpa)');
+        expect(text).toContain('Known stock craft details: Red Devil');
+
+        teardown();
+    }));
+
     it('keeps polling after a failed request', fakeAsync(() => {
         fixture.detectChanges();
         tick();
