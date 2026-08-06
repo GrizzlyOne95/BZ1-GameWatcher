@@ -4,6 +4,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faCirclePlay, faComputer, faLink, faLock, faLockOpen, faMessage, faPlayCircle, faUser } from '@fortawesome/free-solid-svg-icons';
 import { EMPTY, Subject, catchError, exhaustMap, takeUntil, timer } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { StockVehicleDefinition, findStockVehicle } from '../../data/stock-vehicles';
 import { SiteNavComponent } from '../../components/site-nav/site-nav.component';
 import { BZ98Lobby, BZ98LobbyData, BZ98LobbyView, BZ98User } from '../../models/bz98-lobby-info';
 import { BZ98Service } from '../../services/bz98.service';
@@ -97,6 +98,30 @@ export class GamesComponent implements OnInit, OnDestroy {
         }
 
         return String(value);
+    }
+
+    /** Resolve a lobby-reported ODF code without guessing when the craft is modded or unknown. */
+    stockVehicle(code: string | null | undefined): StockVehicleDefinition | null {
+        return findStockVehicle(code);
+    }
+
+    /** Keep the raw ODF code visible even when a friendly stock name is available. */
+    vehicleLabel(code: string | null | undefined): string {
+        const normalizedCode = code?.trim();
+        if (!normalizedCode) {
+            return 'Not reported';
+        }
+
+        const vehicle = findStockVehicle(normalizedCode);
+        return vehicle ? `${vehicle.unitName} (${normalizedCode})` : normalizedCode;
+    }
+
+    /** A failed third-party thumbnail should disappear instead of leaving a broken-image icon. */
+    hideBrokenImage(event: Event): void {
+        const image = event.currentTarget as HTMLImageElement | null;
+        if (image) {
+            image.hidden = true;
+        }
     }
 
     /**

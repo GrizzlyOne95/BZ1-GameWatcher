@@ -1,0 +1,50 @@
+name: Vehicle catalog
+
+on:
+  pull_request:
+    paths:
+      - "Web/**"
+      - "tools/build-stock-vehicle-catalog.py"
+      - "tools/fetch-battlezone-wiki-renders.py"
+      - ".github/workflows/vehicle-catalog.yml"
+  push:
+    paths:
+      - "Web/**"
+      - "tools/build-stock-vehicle-catalog.py"
+      - "tools/fetch-battlezone-wiki-renders.py"
+      - ".github/workflows/vehicle-catalog.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate catalog scripts
+        run: python -m py_compile tools/build-stock-vehicle-catalog.py tools/fetch-battlezone-wiki-renders.py
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: Web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: Web
+        run: npm ci
+
+      - name: Build production web bundle
+        working-directory: Web
+        run: npm run build
