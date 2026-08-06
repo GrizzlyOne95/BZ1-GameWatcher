@@ -31,8 +31,9 @@ namespace BZAPI.Configuration
         public string[] HiddenUserIpAddresses { get; set; } = ["::ffff:54.200.83.68"];
 
         /// <summary>
-        /// Steam IDs flagged with <see cref="Models.BZ98User.IsDangerous"/>. Empty by default.
+        /// Steam IDs flagged with <see cref="Models.BZ98User.IsDangerous"/>. The default mirrors
+        /// the known-user warning maintained by the Battlezone Lobby Monitor project.
         /// </summary>
-        public ulong[] FlaggedSteamIds { get; set; } = [];
+        public ulong[] FlaggedSteamIds { get; set; } = [76561198297657246UL];
     }
 }
