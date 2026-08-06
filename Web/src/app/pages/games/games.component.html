@@ -63,7 +63,15 @@
                         </div>
                         <div class="summary-item">
                             <span>Mod / CRC</span>
-                            <strong>{{ display(lobby.stats?.mod) }} · {{ display(lobby.stats?.crc32) }}</strong>
+                            <strong>
+                                <ng-container *ngIf="workshopUrl(lobby.stats?.mod) as url; else summaryModText">
+                                    <a class="link-info text-decoration-none" [href]="url" target="_blank" rel="noopener noreferrer" title="Open this mod in the Steam Workshop">
+                                        {{ display(lobby.stats?.mod) }}
+                                    </a>
+                                </ng-container>
+                                <ng-template #summaryModText>{{ display(lobby.stats?.mod) }}</ng-template>
+                                · {{ display(lobby.stats?.crc32) }}
+                            </strong>
                         </div>
                         <div class="summary-item">
                             <span>Created</span>
@@ -165,7 +173,7 @@
                 <div class="player-name-row">
                     <strong>{{ display(user.name) }}</strong>
                     <span class="mini-badge host" *ngIf="isHost(lobby, user)">Host</span>
-                    <span class="mini-badge warning" *ngIf="user.isDangerous">Flagged</span>
+                    <span class="mini-badge warning" *ngIf="user.isDangerous">Dangerous</span>
                     <span class="mini-badge" *ngIf="user.isAdmin">Admin</span>
                     <span class="mini-badge" *ngIf="user.isTest">Test</span>
                 </div>
@@ -272,7 +280,17 @@
     <dl class="detail-grid">
         <div><dt>Map file</dt><dd>{{ display(stats.mapFile) }}</dd></div>
         <div><dt>CRC32</dt><dd>{{ display(stats.crc32) }}</dd></div>
-        <div><dt>Mod</dt><dd>{{ display(stats.mod) }}</dd></div>
+        <div>
+            <dt>Mod</dt>
+            <dd>
+                <ng-container *ngIf="workshopUrl(stats.mod) as url; else detailModText">
+                    <a class="link-info text-decoration-none" [href]="url" target="_blank" rel="noopener noreferrer" title="Open this mod in the Steam Workshop">
+                        {{ display(stats.mod) }}
+                    </a>
+                </ng-container>
+                <ng-template #detailModText>{{ display(stats.mod) }}</ng-template>
+            </dd>
+        </div>
         <div><dt>Lives</dt><dd>{{ display(stats.attributes?.lives) }}</dd></div>
         <div><dt>Satellite</dt><dd>{{ yesNo(stats.attributes?.satellite) }}</dd></div>
         <div><dt>Barracks</dt><dd>{{ yesNo(stats.attributes?.barracks) }}</dd></div>
