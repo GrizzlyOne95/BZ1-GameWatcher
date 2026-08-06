@@ -172,7 +172,7 @@ describe('GamesComponent', () => {
         expect(fixture.componentInstance.vehicleLabel(null)).toBe('Not reported');
     });
 
-    it('renders expandable ODF details for a known vehicle', fakeAsync(() => {
+    it('renders expandable ODF details and an attributed thumbnail for a known vehicle', fakeAsync(() => {
         load([
             lobby({
                 userCount: 1,
@@ -186,8 +186,13 @@ describe('GamesComponent', () => {
         ]);
 
         const text = fixture.nativeElement.textContent as string;
+        const thumbnail = fixture.nativeElement.querySelector('img.vehicle-thumbnail') as HTMLImageElement | null;
+
         expect(text).toContain('Red Devil (bvrmpa)');
         expect(text).toContain('Known stock craft details: Red Devil');
+        expect(thumbnail).not.toBeNull();
+        expect(thumbnail?.alt).toBe('Red Devil craft render');
+        expect(thumbnail?.closest('a')?.getAttribute('href')).toContain('battlezone.fandom.com');
 
         teardown();
     }));
