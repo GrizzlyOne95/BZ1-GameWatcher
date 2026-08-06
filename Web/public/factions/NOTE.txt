@@ -1,1 +1,0 @@
-Binary faction assets are stored in this directory.
