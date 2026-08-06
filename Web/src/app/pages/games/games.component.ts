@@ -116,6 +116,14 @@ export class GamesComponent implements OnInit, OnDestroy {
         return vehicle ? `${vehicle.unitName} (${normalizedCode})` : normalizedCode;
     }
 
+    /** A failed third-party thumbnail should disappear instead of leaving a broken-image icon. */
+    hideBrokenImage(event: Event): void {
+        const image = event.currentTarget as HTMLImageElement | null;
+        if (image) {
+            image.hidden = true;
+        }
+    }
+
     /**
      * Battlezone reports the Steam Workshop published-file ID in the mod field for Workshop games.
      * Non-numeric values such as stock/local mod labels are deliberately left as plain text.
