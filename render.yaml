@@ -7,7 +7,6 @@ services:
     dockerfilePath: ./Dockerfile.render
     autoDeployTrigger: checksPass
     healthCheckPath: /api/health
-    maxShutdownDelaySeconds: 30
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
