@@ -74,13 +74,13 @@ export class GamesComponent implements OnInit, OnDestroy {
         window.location.href = lobby.directJoinUrl || buildSteamJoinUrl(lobby.id);
     }
 
-    async shareToDiscord(lobby: BZ98LobbyView): Promise<void> {
+    async shareToCommunity(lobby: BZ98LobbyView): Promise<void> {
         const shareText =
             `${lobby.userCount}/${lobby.memberLimit} ${window.location.origin}/join/${lobby.id} @BZ1 Expert @BZ1 Novice`;
 
         await this.copyToClipboard(shareText);
 
-        window.location.href = environment.discordShareChannelUrl;
+        window.location.href = environment.communitySiteUrl;
     }
 
     trackLobby(_index: number, lobby: BZ98LobbyView): number {
