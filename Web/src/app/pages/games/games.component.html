@@ -178,7 +178,7 @@
                     <span class="mini-badge" *ngIf="user.isTest">Test</span>
                 </div>
                 <div class="player-subtitle">
-                    {{ userPlatform(user) }} · Team {{ display(user.metaData?.team) }} · {{ display(user.metaData?.vehicle) }}
+                    {{ userPlatform(user) }} · Team {{ display(user.metaData?.team) }} · {{ vehicleLabel(user.metaData?.vehicle) }}
                 </div>
             </div>
 
@@ -213,10 +213,44 @@
                 <div><dt>Launched</dt><dd>{{ display(user.metaData?.launched) }}</dd></div>
                 <div><dt>Mini ID</dt><dd>{{ display(user.metaData?.miniId) }}</dd></div>
                 <div><dt>Team</dt><dd>{{ display(user.metaData?.team) }}</dd></div>
-                <div><dt>Vehicle</dt><dd>{{ display(user.metaData?.vehicle) }}</dd></div>
+                <div><dt>Vehicle</dt><dd>{{ vehicleLabel(user.metaData?.vehicle) }}</dd></div>
                 <div class="detail-wide"><dt>Known players</dt><dd class="text-break">{{ display(user.metaData?.knownPlayers) }}</dd></div>
                 <div class="detail-wide"><dt>Ready string</dt><dd class="text-break raw-value">{{ display(user.metaData?.ready) }}</dd></div>
             </dl>
+
+            <details class="detail-panel compact-panel" *ngIf="stockVehicle(user.metaData?.vehicle) as vehicle">
+                <summary>Known stock craft details: {{ vehicle.unitName }}</summary>
+                <div class="detail-section">
+                    <h5>Object definition</h5>
+                    <dl class="detail-grid player-detail-grid">
+                        <div><dt>ODF code</dt><dd>{{ vehicle.code }}</dd></div>
+                        <div><dt>Unit name</dt><dd>{{ vehicle.unitName }}</dd></div>
+                        <div><dt>Base ODF</dt><dd>{{ display(vehicle.baseName) }}</dd></div>
+                        <div><dt>Class label</dt><dd>{{ display(vehicle.classLabel) }}</dd></div>
+                        <div><dt>Scrap value</dt><dd>{{ display(vehicle.scrapValue) }}</dd></div>
+                        <div><dt>Scrap cost</dt><dd>{{ display(vehicle.scrapCost) }}</dd></div>
+                        <div><dt>Build time</dt><dd>{{ display(vehicle.buildTime) }} s</dd></div>
+                        <div><dt>Maximum health</dt><dd>{{ display(vehicle.maxHealth) }}</dd></div>
+                        <div><dt>Maximum ammo</dt><dd>{{ display(vehicle.maxAmmo) }}</dd></div>
+                        <div><dt>Friendly AI label</dt><dd>{{ display(vehicle.aiName) }}</dd></div>
+                        <div><dt>Enemy AI label</dt><dd>{{ display(vehicle.aiName2) }}</dd></div>
+                        <div><dt>Weapon mask</dt><dd class="raw-value">{{ display(vehicle.weaponMask) }}</dd></div>
+                        <div><dt>Heat signature</dt><dd>{{ display(vehicle.heatSignature) }}</dd></div>
+                        <div><dt>Image signature</dt><dd>{{ display(vehicle.imageSignature) }}</dd></div>
+                        <div><dt>Radar signature</dt><dd>{{ display(vehicle.radarSignature) }}</dd></div>
+                    </dl>
+                </div>
+
+                <div class="detail-section" *ngIf="vehicle.weapons.length > 0">
+                    <h5>Weapon hardpoints</h5>
+                    <dl class="detail-grid player-detail-grid">
+                        <div *ngFor="let weapon of vehicle.weapons">
+                            <dt>Slot {{ weapon.slot }} · {{ display(weapon.hardpoint) }}</dt>
+                            <dd>{{ display(weapon.odf) }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </details>
 
             <ng-container *ngIf="user.stats as userStats">
                 <h6 class="detail-subheading">Player-reported stats</h6>
