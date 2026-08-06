@@ -12,6 +12,29 @@ category. Declare those in `wiki-overrides.json`. The Red Devil is the first exa
 `bvrmpa` inherits from `bvrdev`, and `bvrdev` is explicitly associated with the wiki's
 `Bvrdev render.png` image.
 
+## Source priority
+
+Use the following order so a plausible-looking image is never assigned to the wrong ODF:
+
+1. Exact ODF render from the Battlezone Wiki.
+2. Nearest rendered base ODF in the resolved `baseName` inheritance chain.
+3. A manually reviewed crop from an official game manual when no suitable wiki render exists.
+4. No image. Do not guess from a similar unit name or chassis.
+
+Official manual fallbacks:
+
+- Battlezone 98 Redux manual:
+  `https://cdn.akamai.steamstatic.com/steam/apps/301650/manuals/BZ98R_Manual_GB.pdf?t=1461330226`
+- The Red Odyssey manual:
+  `https://cdn.akamai.steamstatic.com/steam/apps/470750/manuals/TheRedOdyssey_Manual.pdf?t=1579791115`
+
+For a manual-derived image, render the source page at high resolution, crop only the unit artwork,
+save it as `/vehicles/<odf-code>.png`, and add a manifest entry whose `sourceUrl` points to the
+official PDF with a page fragment where supported, for example `...Manual.pdf#page=8`. Record the
+unit/page mapping during review rather than attempting blind automatic crops across every page.
+
+## Generate the catalog
+
 Run:
 
 ```bash
