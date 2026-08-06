@@ -20,11 +20,21 @@ export interface BZ98Lobby {
     directJoinUrl: string | null;
 }
 
-/** A lobby prepared for display, with users flattened and split into team columns. */
-export interface BZ98LobbyView extends Omit<BZ98Lobby, 'users'> {
+/** A lobby prepared for display, with users flattened and game-settings data preserved separately. */
+export interface BZ98LobbyView extends Omit<BZ98Lobby, 'users' | 'stats'> {
     users: BZ98User[];
     oddTeamUsers: BZ98User[];
     evenTeamUsers: BZ98User[];
+    unassignedTeamUsers: BZ98User[];
+
+    /** The API's reported stats object, without transformation. */
+    apiStats: BZ98LobbyData | null;
+
+    /** Stats parsed from the raw metadata game-settings string. */
+    parsedStats: BZ98LobbyData | null;
+
+    /** Parsed settings when available, otherwise the API's reported stats. */
+    stats: BZ98LobbyData | null;
 }
 
 export interface BZ98MetaData {
