@@ -1,5 +1,6 @@
 name: Refresh vehicle renders
 
+# This workflow is intentionally separate from application builds: it refreshes and commits assets.
 on:
   workflow_dispatch:
   push:
