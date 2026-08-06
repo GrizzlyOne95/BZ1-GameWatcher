@@ -18,7 +18,7 @@ type UnitSort = 'name' | 'faction' | 'health' | 'cost';
     selector: 'app-unit-database',
     imports: [CommonModule, FormsModule, SiteNavComponent],
     templateUrl: './unit-database.component.html',
-    styleUrl: './unit-database.component.scss'
+    styleUrl: './unit-database.page.scss'
 })
 export class UnitDatabaseComponent {
     readonly factions = Object.values(STOCK_FACTIONS);
