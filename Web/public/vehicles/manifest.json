@@ -1,8 +1,416 @@
 {
+  "avapc": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/5/57/Avapc_render.png/revision/latest/scale-to-width-down/300?cb=20150804220613",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/Rat_Pack?file=Avapc_render.png",
+    "thumbnailUrl": "/vehicles/avapc.png",
+    "wikiTitle": "File:Avapc render.png"
+  },
+  "avartl": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/4/4f/Avartl_render.png/revision/latest/scale-to-width-down/300?cb=20150804220613",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avartl_render.png",
+    "thumbnailUrl": "/vehicles/avartl.png",
+    "wikiTitle": "File:Avartl render.png"
+  },
+  "avcnst": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/1/1f/Avcnst_render.png/revision/latest/scale-to-width-down/300?cb=20141126192912",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avcnst_render.png",
+    "thumbnailUrl": "/vehicles/avcnst.png",
+    "wikiTitle": "File:Avcnst render.png"
+  },
+  "avfigh": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/8/8e/Avfigh_render.png/revision/latest/scale-to-width-down/300?cb=20150804220614",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avfigh_render.png",
+    "thumbnailUrl": "/vehicles/avfigh.png",
+    "wikiTitle": "File:Avfigh render.png"
+  },
+  "avhaul": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/f/fa/Avhaul_render.png/revision/latest/scale-to-width-down/300?cb=20141003063046",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avhaul_render.png",
+    "thumbnailUrl": "/vehicles/avhaul.png",
+    "wikiTitle": "File:Avhaul render.png"
+  },
+  "avhraz": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/c/ce/Avhraz_render.png/revision/latest/scale-to-width-down/300?cb=20150408202057",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avhraz_render.png",
+    "thumbnailUrl": "/vehicles/avhraz.png",
+    "wikiTitle": "File:Avhraz render.png"
+  },
+  "avland": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/d/d3/Avland_render.png/revision/latest/scale-to-width-down/300?cb=20150804215232",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avland_render.png",
+    "thumbnailUrl": "/vehicles/avland.png",
+    "wikiTitle": "File:Avland render.png"
+  },
+  "avltnk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/4/45/Avltnk_render.png/revision/latest/scale-to-width-down/300?cb=20150317211937",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avltnk_render.png",
+    "thumbnailUrl": "/vehicles/avltnk.png",
+    "wikiTitle": "File:Avltnk render.png"
+  },
+  "avmine": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/2/28/Avmine_render.png/revision/latest/scale-to-width-down/300?cb=20150804220614",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avmine_render.png",
+    "thumbnailUrl": "/vehicles/avmine.png",
+    "wikiTitle": "File:Avmine render.png"
+  },
+  "avmuf": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/6/6d/Avmuf_render.png/revision/latest/scale-to-width-down/300?cb=20150804220614",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avmuf_render.png",
+    "thumbnailUrl": "/vehicles/avmuf.png",
+    "wikiTitle": "File:Avmuf render.png"
+  },
+  "avrckt": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/f/fe/Avrckt_render.png/revision/latest/scale-to-width-down/300?cb=20150408201028",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avrckt_render.png",
+    "thumbnailUrl": "/vehicles/avrckt.png",
+    "wikiTitle": "File:Avrckt render.png"
+  },
+  "avrecy": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/72/Avrecy_render.png/revision/latest/scale-to-width-down/300?cb=20150408204009",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avrecy_render.png",
+    "thumbnailUrl": "/vehicles/avrecy.png",
+    "wikiTitle": "File:Avrecy render.png"
+  },
+  "avscav": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/0/0e/Avscav_render.png/revision/latest/scale-to-width-down/300?cb=20150804215509",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avscav_render.png",
+    "thumbnailUrl": "/vehicles/avscav.png",
+    "wikiTitle": "File:Avscav render.png"
+  },
+  "avslf": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/a/af/Avslf_render.png/revision/latest/scale-to-width-down/300?cb=20141003062923",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avslf_render.png",
+    "thumbnailUrl": "/vehicles/avslf.png",
+    "wikiTitle": "File:Avslf render.png"
+  },
+  "avtank": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/f/ff/Avtank_render.png/revision/latest/scale-to-width-down/300?cb=20150804215423",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avtank_render.png",
+    "thumbnailUrl": "/vehicles/avtank.png",
+    "wikiTitle": "File:Avtank render.png"
+  },
+  "avtest": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/d/dc/Avtest_render.png/revision/latest?cb=20150408203447",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avtest_render.png",
+    "thumbnailUrl": "/vehicles/avtest.png",
+    "wikiTitle": "File:Avtest render.png"
+  },
+  "avturr": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/1/15/Avturr_render.png/revision/latest?cb=20150408203300",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avturr_render.png",
+    "thumbnailUrl": "/vehicles/avturr.png",
+    "wikiTitle": "File:Avturr render.png"
+  },
+  "avwalk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/b/b2/Avwalk_render.png/revision/latest/scale-to-width-down/300?cb=20150408202700",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Avwalk_render.png",
+    "thumbnailUrl": "/vehicles/avwalk.png",
+    "wikiTitle": "File:Avwalk render.png"
+  },
+  "bvapc": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/7a/Bvapc_render.png/revision/latest/scale-to-width-down/300?cb=20150804220615",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvapc_render.png",
+    "thumbnailUrl": "/vehicles/bvapc.png",
+    "wikiTitle": "File:Bvapc render.png"
+  },
+  "bvartl": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/5/5f/Bvartl_render.png/revision/latest/scale-to-width-down/300?cb=20150804220615",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvartl_render.png",
+    "thumbnailUrl": "/vehicles/bvartl.png",
+    "wikiTitle": "File:Bvartl render.png"
+  },
+  "bvcnst": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/0/08/Bvcnst_render.png/revision/latest/scale-to-width-down/300?cb=20150805115604",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvcnst_render.png",
+    "thumbnailUrl": "/vehicles/bvcnst.png",
+    "wikiTitle": "File:Bvcnst render.png"
+  },
+  "bvhaul": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/e/e8/Bvhaul_render.png/revision/latest/scale-to-width-down/300?cb=20150804220615",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvhaul_render.png",
+    "thumbnailUrl": "/vehicles/bvhaul.png",
+    "wikiTitle": "File:Bvhaul render.png"
+  },
+  "bvhraz": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/b/bf/Bvhraz_render.png/revision/latest/scale-to-width-down/300?cb=20150804220616",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvhraz_render.png",
+    "thumbnailUrl": "/vehicles/bvhraz.png",
+    "wikiTitle": "File:Bvhraz render.png"
+  },
+  "bvltnk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/a/a4/Bvltnk_render.png/revision/latest/scale-to-width-down/300?cb=20150804220958",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvltnk_render.png",
+    "thumbnailUrl": "/vehicles/bvltnk.png",
+    "wikiTitle": "File:Bvltnk render.png"
+  },
+  "bvmine": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/b/bf/Bvmine_render.png/revision/latest/scale-to-width-down/300?cb=20150804220958",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvmine_render.png",
+    "thumbnailUrl": "/vehicles/bvmine.png",
+    "wikiTitle": "File:Bvmine render.png"
+  },
+  "bvmuf": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/1/14/Bvmuf_render.png/revision/latest/scale-to-width-down/300?cb=20150804220959",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvmuf_render.png",
+    "thumbnailUrl": "/vehicles/bvmuf.png",
+    "wikiTitle": "File:Bvmuf render.png"
+  },
+  "bvraz": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/c/c8/Bvraz_render.png/revision/latest/scale-to-width-down/300?cb=20150804220959",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvraz_render.png",
+    "thumbnailUrl": "/vehicles/bvraz.png",
+    "wikiTitle": "File:Bvraz render.png"
+  },
+  "bvrckt": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/3/3d/Bvrckt_render.png/revision/latest/scale-to-width-down/300?cb=20150804221000",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvrckt_render.png",
+    "thumbnailUrl": "/vehicles/bvrckt.png",
+    "wikiTitle": "File:Bvrckt render.png"
+  },
   "bvrdev": {
-    "thumbnailUrl": null,
-    "sourceUrl": "https://battlezone.fandom.com/wiki/Red_Devil?file=Bvrdev_render.png",
     "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/0/0e/Bvrdev_render.png/revision/latest/scale-to-width-down/300?cb=20150805115718",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/Red_Devil?file=Bvrdev_render.png",
+    "thumbnailUrl": "/vehicles/bvrdev.png",
     "wikiTitle": "File:Bvrdev render.png"
+  },
+  "bvrecy": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/1/19/Bvrecy_render.png/revision/latest/scale-to-width-down/300?cb=20150804221000",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvrecy_render.png",
+    "thumbnailUrl": "/vehicles/bvrecy.png",
+    "wikiTitle": "File:Bvrecy render.png"
+  },
+  "bvscav": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/1/13/Bvscav_render.png/revision/latest/scale-to-width-down/300?cb=20150804221001",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvscav_render.png",
+    "thumbnailUrl": "/vehicles/bvscav.png",
+    "wikiTitle": "File:Bvscav render.png"
+  },
+  "bvslf": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/b/b7/Bvslf_render.png/revision/latest/scale-to-width-down/300?cb=20150804221001",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvslf_render.png",
+    "thumbnailUrl": "/vehicles/bvslf.png",
+    "wikiTitle": "File:Bvslf render.png"
+  },
+  "bvtank": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/3/39/Bvtank_render.png/revision/latest/scale-to-width-down/300?cb=20150804221002",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvtank_render.png",
+    "thumbnailUrl": "/vehicles/bvtank.png",
+    "wikiTitle": "File:Bvtank render.png"
+  },
+  "bvturr": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/d/d7/Bvturr_render.png/revision/latest/scale-to-width-down/300?cb=20150804221002",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvturr_render.png",
+    "thumbnailUrl": "/vehicles/bvturr.png",
+    "wikiTitle": "File:Bvturr render.png"
+  },
+  "bvwalk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/b/b9/Bvwalk_render.png/revision/latest/scale-to-width-down/300?cb=20150804221002",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Bvwalk_render.png",
+    "thumbnailUrl": "/vehicles/bvwalk.png",
+    "wikiTitle": "File:Bvwalk render.png"
+  },
+  "cvapc": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/73/Cvapc_render.png/revision/latest/scale-to-width-down/300?cb=20150805120053",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvapc_render.png",
+    "thumbnailUrl": "/vehicles/cvapc.png",
+    "wikiTitle": "File:Cvapc render.png"
+  },
+  "cvartl": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/9/94/Cvartl_render.png/revision/latest/scale-to-width-down/300?cb=20150805120151",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvartl_render.png",
+    "thumbnailUrl": "/vehicles/cvartl.png",
+    "wikiTitle": "File:Cvartl render.png"
+  },
+  "cvcnst": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/2/24/Cvcnst_render.png/revision/latest/scale-to-width-down/300?cb=20150805120256",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvcnst_render.png",
+    "thumbnailUrl": "/vehicles/cvcnst.png",
+    "wikiTitle": "File:Cvcnst render.png"
+  },
+  "cvfigh": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/71/Cvfigh_render.png/revision/latest/scale-to-width-down/300?cb=20150805120411",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvfigh_render.png",
+    "thumbnailUrl": "/vehicles/cvfigh.png",
+    "wikiTitle": "File:Cvfigh render.png"
+  },
+  "cvhaul": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/0/09/Cvhaul_render.png/revision/latest/scale-to-width-down/300?cb=20141003073535",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvhaul_render.png",
+    "thumbnailUrl": "/vehicles/cvhaul.png",
+    "wikiTitle": "File:Cvhaul render.png"
+  },
+  "cvhraz": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/d/db/Cvhraz_render.png/revision/latest/scale-to-width-down/300?cb=20150805120509",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvhraz_render.png",
+    "thumbnailUrl": "/vehicles/cvhraz.png",
+    "wikiTitle": "File:Cvhraz render.png"
+  },
+  "cvhtnk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/0/08/Cvhtnk_render.png/revision/latest/scale-to-width-down/300?cb=20150805120604",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvhtnk_render.png",
+    "thumbnailUrl": "/vehicles/cvhtnk.png",
+    "wikiTitle": "File:Cvhtnk render.png"
+  },
+  "cvltnk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/4/4a/Cvltnk_render.png/revision/latest/scale-to-width-down/300?cb=20150805120658",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvltnk_render.png",
+    "thumbnailUrl": "/vehicles/cvltnk.png",
+    "wikiTitle": "File:Cvltnk render.png"
+  },
+  "cvmine": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/3/31/Cvmine_render.png/revision/latest/scale-to-width-down/300?cb=20141005002027",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvmine_render.png",
+    "thumbnailUrl": "/vehicles/cvmine.png",
+    "wikiTitle": "File:Cvmine render.png"
+  },
+  "cvmuf": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/b/b0/Cvmuf_render.png/revision/latest/scale-to-width-down/300?cb=20141003071954",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvmuf_render.png",
+    "thumbnailUrl": "/vehicles/cvmuf.png",
+    "wikiTitle": "File:Cvmuf render.png"
+  },
+  "cvrckt": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/5/56/Cvrckt_render.png/revision/latest/scale-to-width-down/300?cb=20150805120800",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvrckt_render.png",
+    "thumbnailUrl": "/vehicles/cvrckt.png",
+    "wikiTitle": "File:Cvrckt render.png"
+  },
+  "cvrecy": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/9/90/Cvrecy_render.png/revision/latest/scale-to-width-down/300?cb=20141003073710",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvrecy_render.png",
+    "thumbnailUrl": "/vehicles/cvrecy.png",
+    "wikiTitle": "File:Cvrecy render.png"
+  },
+  "cvscav": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/c/ce/Cvscav_render.png/revision/latest?cb=20141003073912",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvscav_render.png",
+    "thumbnailUrl": "/vehicles/cvscav.png",
+    "wikiTitle": "File:Cvscav render.png"
+  },
+  "cvslf": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/9/9b/Cvslf_render.png/revision/latest/scale-to-width-down/300?cb=20141003071435",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvslf_render.png",
+    "thumbnailUrl": "/vehicles/cvslf.png",
+    "wikiTitle": "File:Cvslf render.png"
+  },
+  "cvtnk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/6/62/Cvtnk_render.png/revision/latest/scale-to-width-down/300?cb=20150805120909",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvtnk_render.png",
+    "thumbnailUrl": "/vehicles/cvtnk.png",
+    "wikiTitle": "File:Cvtnk render.png"
+  },
+  "cvturr": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/3/31/Cvturr_render.png/revision/latest/scale-to-width-down/300?cb=20150805121028",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvturr_render.png",
+    "thumbnailUrl": "/vehicles/cvturr.png",
+    "wikiTitle": "File:Cvturr render.png"
+  },
+  "cvwalk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/9/98/Cvwalk_render.png/revision/latest/scale-to-width-down/300?cb=20150805121135",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Cvwalk_render.png",
+    "thumbnailUrl": "/vehicles/cvwalk.png",
+    "wikiTitle": "File:Cvwalk render.png"
+  },
+  "svapc": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/7f/Svapc_render.png/revision/latest/scale-to-width-down/300?cb=20141003062209",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svapc_render.png",
+    "thumbnailUrl": "/vehicles/svapc.png",
+    "wikiTitle": "File:Svapc render.png"
+  },
+  "svartl": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/1/1a/Svartl_render.png/revision/latest/scale-to-width-down/300?cb=20141003060550",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svartl_render.png",
+    "thumbnailUrl": "/vehicles/svartl.png",
+    "wikiTitle": "File:Svartl render.png"
+  },
+  "svcnst": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/7f/Svcnst_render.png/revision/latest/scale-to-width-down/300?cb=20150804215738",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svcnst_render.png",
+    "thumbnailUrl": "/vehicles/svcnst.png",
+    "wikiTitle": "File:Svcnst render.png"
+  },
+  "svfigh": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/c/c1/Svfigh_render.png/revision/latest/scale-to-width-down/300?cb=20150419204425",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svfigh_render.png",
+    "thumbnailUrl": "/vehicles/svfigh.png",
+    "wikiTitle": "File:Svfigh render.png"
+  },
+  "svhaul": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/f/f1/Svhaul_render.png/revision/latest/scale-to-width-down/300?cb=20141003061829",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svhaul_render.png",
+    "thumbnailUrl": "/vehicles/svhaul.png",
+    "wikiTitle": "File:Svhaul render.png"
+  },
+  "svhraz": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/5/59/Svhraz_render.png/revision/latest/scale-to-width-down/300?cb=20150804215829",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svhraz_render.png",
+    "thumbnailUrl": "/vehicles/svhraz.png",
+    "wikiTitle": "File:Svhraz render.png"
+  },
+  "svltnk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/4/4f/Svltnk_render.png/revision/latest/scale-to-width-down/300?cb=20150804215904",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svltnk_render.png",
+    "thumbnailUrl": "/vehicles/svltnk.png",
+    "wikiTitle": "File:Svltnk render.png"
+  },
+  "svmine": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/75/Svmine_render.png/revision/latest/scale-to-width-down/300?cb=20150804221003",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svmine_render.png",
+    "thumbnailUrl": "/vehicles/svmine.png",
+    "wikiTitle": "File:Svmine render.png"
+  },
+  "svmuf": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/e/e0/Svmuf_render.png/revision/latest/scale-to-width-down/300?cb=20141003060413",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svmuf_render.png",
+    "thumbnailUrl": "/vehicles/svmuf.png",
+    "wikiTitle": "File:Svmuf render.png"
+  },
+  "svrckt": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/b/b0/Svrckt_render.png/revision/latest/scale-to-width-down/300?cb=20150804215939",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svrckt_render.png",
+    "thumbnailUrl": "/vehicles/svrckt.png",
+    "wikiTitle": "File:Svrckt render.png"
+  },
+  "svrecy": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/0/0e/Svrecy_render.png/revision/latest/scale-to-width-down/300?cb=20141003061208",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svrecy_render.png",
+    "thumbnailUrl": "/vehicles/svrecy.png",
+    "wikiTitle": "File:Svrecy render.png"
+  },
+  "svsav": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/1/17/Svsav_render.png/revision/latest/scale-to-width-down/300?cb=20150804221003",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svsav_render.png",
+    "thumbnailUrl": "/vehicles/svsav.png",
+    "wikiTitle": "File:Svsav render.png"
+  },
+  "svscav": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/7b/Svscav_render.png/revision/latest/scale-to-width-down/300?cb=20141003061336",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svscav_render.png",
+    "thumbnailUrl": "/vehicles/svscav.png",
+    "wikiTitle": "File:Svscav render.png"
+  },
+  "svslf": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/7/73/Svslf_render.png/revision/latest/scale-to-width-down/300?cb=20141003062559",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svslf_render.png",
+    "thumbnailUrl": "/vehicles/svslf.png",
+    "wikiTitle": "File:Svslf render.png"
+  },
+  "svtank": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/8/87/Svtank_render.png/revision/latest/scale-to-width-down/300?cb=20150804220106",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svtank_render.png",
+    "thumbnailUrl": "/vehicles/svtank.png",
+    "wikiTitle": "File:Svtank render.png"
+  },
+  "svturr": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/e/ea/Svturr_render.png/revision/latest/scale-to-width-down/300?cb=20141003060904",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svturr_render.png",
+    "thumbnailUrl": "/vehicles/svturr.png",
+    "wikiTitle": "File:Svturr render.png"
+  },
+  "svwalk": {
+    "originalUrl": "https://static.wikia.nocookie.net/battlezone/images/e/ee/Svwalk_render.png/revision/latest/scale-to-width-down/300?cb=20150804220130",
+    "sourceUrl": "https://battlezone.fandom.com/wiki/File:Svwalk_render.png",
+    "thumbnailUrl": "/vehicles/svwalk.png",
+    "wikiTitle": "File:Svwalk render.png"
   }
 }

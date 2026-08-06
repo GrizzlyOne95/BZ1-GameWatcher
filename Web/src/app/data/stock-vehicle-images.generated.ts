@@ -6,4 +6,281 @@ export interface StockVehicleImageDefinition {
 }
 
 export const GENERATED_STOCK_VEHICLE_IMAGES: Readonly<Record<string, StockVehicleImageDefinition>> =
-    Object.freeze({});
+    Object.freeze({
+    "avapc": {
+        thumbnailUrl: "/vehicles/avapc.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/Rat_Pack?file=Avapc_render.png"
+    },
+    "avartl": {
+        thumbnailUrl: "/vehicles/avartl.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avartl_render.png"
+    },
+    "avcnst": {
+        thumbnailUrl: "/vehicles/avcnst.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avcnst_render.png"
+    },
+    "avfigh": {
+        thumbnailUrl: "/vehicles/avfigh.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avfigh_render.png"
+    },
+    "avhaul": {
+        thumbnailUrl: "/vehicles/avhaul.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avhaul_render.png"
+    },
+    "avhraz": {
+        thumbnailUrl: "/vehicles/avhraz.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avhraz_render.png"
+    },
+    "avland": {
+        thumbnailUrl: "/vehicles/avland.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avland_render.png"
+    },
+    "avltnk": {
+        thumbnailUrl: "/vehicles/avltnk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avltnk_render.png"
+    },
+    "avmine": {
+        thumbnailUrl: "/vehicles/avmine.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avmine_render.png"
+    },
+    "avmuf": {
+        thumbnailUrl: "/vehicles/avmuf.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avmuf_render.png"
+    },
+    "avrckt": {
+        thumbnailUrl: "/vehicles/avrckt.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avrckt_render.png"
+    },
+    "avrecy": {
+        thumbnailUrl: "/vehicles/avrecy.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avrecy_render.png"
+    },
+    "avscav": {
+        thumbnailUrl: "/vehicles/avscav.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avscav_render.png"
+    },
+    "avslf": {
+        thumbnailUrl: "/vehicles/avslf.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avslf_render.png"
+    },
+    "avtank": {
+        thumbnailUrl: "/vehicles/avtank.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avtank_render.png"
+    },
+    "avtest": {
+        thumbnailUrl: "/vehicles/avtest.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avtest_render.png"
+    },
+    "avturr": {
+        thumbnailUrl: "/vehicles/avturr.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avturr_render.png"
+    },
+    "avwalk": {
+        thumbnailUrl: "/vehicles/avwalk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Avwalk_render.png"
+    },
+    "bvapc": {
+        thumbnailUrl: "/vehicles/bvapc.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvapc_render.png"
+    },
+    "bvartl": {
+        thumbnailUrl: "/vehicles/bvartl.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvartl_render.png"
+    },
+    "bvcnst": {
+        thumbnailUrl: "/vehicles/bvcnst.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvcnst_render.png"
+    },
+    "bvhaul": {
+        thumbnailUrl: "/vehicles/bvhaul.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvhaul_render.png"
+    },
+    "bvhraz": {
+        thumbnailUrl: "/vehicles/bvhraz.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvhraz_render.png"
+    },
+    "bvltnk": {
+        thumbnailUrl: "/vehicles/bvltnk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvltnk_render.png"
+    },
+    "bvmine": {
+        thumbnailUrl: "/vehicles/bvmine.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvmine_render.png"
+    },
+    "bvmuf": {
+        thumbnailUrl: "/vehicles/bvmuf.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvmuf_render.png"
+    },
+    "bvraz": {
+        thumbnailUrl: "/vehicles/bvraz.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvraz_render.png"
+    },
+    "bvrckt": {
+        thumbnailUrl: "/vehicles/bvrckt.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvrckt_render.png"
+    },
+    "bvrdev": {
+        thumbnailUrl: "/vehicles/bvrdev.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/Red_Devil?file=Bvrdev_render.png"
+    },
+    "bvrecy": {
+        thumbnailUrl: "/vehicles/bvrecy.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvrecy_render.png"
+    },
+    "bvscav": {
+        thumbnailUrl: "/vehicles/bvscav.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvscav_render.png"
+    },
+    "bvslf": {
+        thumbnailUrl: "/vehicles/bvslf.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvslf_render.png"
+    },
+    "bvtank": {
+        thumbnailUrl: "/vehicles/bvtank.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvtank_render.png"
+    },
+    "bvturr": {
+        thumbnailUrl: "/vehicles/bvturr.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvturr_render.png"
+    },
+    "bvwalk": {
+        thumbnailUrl: "/vehicles/bvwalk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Bvwalk_render.png"
+    },
+    "cvapc": {
+        thumbnailUrl: "/vehicles/cvapc.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvapc_render.png"
+    },
+    "cvartl": {
+        thumbnailUrl: "/vehicles/cvartl.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvartl_render.png"
+    },
+    "cvcnst": {
+        thumbnailUrl: "/vehicles/cvcnst.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvcnst_render.png"
+    },
+    "cvfigh": {
+        thumbnailUrl: "/vehicles/cvfigh.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvfigh_render.png"
+    },
+    "cvhaul": {
+        thumbnailUrl: "/vehicles/cvhaul.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvhaul_render.png"
+    },
+    "cvhraz": {
+        thumbnailUrl: "/vehicles/cvhraz.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvhraz_render.png"
+    },
+    "cvhtnk": {
+        thumbnailUrl: "/vehicles/cvhtnk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvhtnk_render.png"
+    },
+    "cvltnk": {
+        thumbnailUrl: "/vehicles/cvltnk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvltnk_render.png"
+    },
+    "cvmine": {
+        thumbnailUrl: "/vehicles/cvmine.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvmine_render.png"
+    },
+    "cvmuf": {
+        thumbnailUrl: "/vehicles/cvmuf.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvmuf_render.png"
+    },
+    "cvrckt": {
+        thumbnailUrl: "/vehicles/cvrckt.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvrckt_render.png"
+    },
+    "cvrecy": {
+        thumbnailUrl: "/vehicles/cvrecy.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvrecy_render.png"
+    },
+    "cvscav": {
+        thumbnailUrl: "/vehicles/cvscav.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvscav_render.png"
+    },
+    "cvslf": {
+        thumbnailUrl: "/vehicles/cvslf.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvslf_render.png"
+    },
+    "cvtnk": {
+        thumbnailUrl: "/vehicles/cvtnk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvtnk_render.png"
+    },
+    "cvturr": {
+        thumbnailUrl: "/vehicles/cvturr.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvturr_render.png"
+    },
+    "cvwalk": {
+        thumbnailUrl: "/vehicles/cvwalk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Cvwalk_render.png"
+    },
+    "svapc": {
+        thumbnailUrl: "/vehicles/svapc.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svapc_render.png"
+    },
+    "svartl": {
+        thumbnailUrl: "/vehicles/svartl.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svartl_render.png"
+    },
+    "svcnst": {
+        thumbnailUrl: "/vehicles/svcnst.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svcnst_render.png"
+    },
+    "svfigh": {
+        thumbnailUrl: "/vehicles/svfigh.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svfigh_render.png"
+    },
+    "svhaul": {
+        thumbnailUrl: "/vehicles/svhaul.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svhaul_render.png"
+    },
+    "svhraz": {
+        thumbnailUrl: "/vehicles/svhraz.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svhraz_render.png"
+    },
+    "svltnk": {
+        thumbnailUrl: "/vehicles/svltnk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svltnk_render.png"
+    },
+    "svmine": {
+        thumbnailUrl: "/vehicles/svmine.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svmine_render.png"
+    },
+    "svmuf": {
+        thumbnailUrl: "/vehicles/svmuf.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svmuf_render.png"
+    },
+    "svrckt": {
+        thumbnailUrl: "/vehicles/svrckt.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svrckt_render.png"
+    },
+    "svrecy": {
+        thumbnailUrl: "/vehicles/svrecy.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svrecy_render.png"
+    },
+    "svsav": {
+        thumbnailUrl: "/vehicles/svsav.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svsav_render.png"
+    },
+    "svscav": {
+        thumbnailUrl: "/vehicles/svscav.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svscav_render.png"
+    },
+    "svslf": {
+        thumbnailUrl: "/vehicles/svslf.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svslf_render.png"
+    },
+    "svtank": {
+        thumbnailUrl: "/vehicles/svtank.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svtank_render.png"
+    },
+    "svturr": {
+        thumbnailUrl: "/vehicles/svturr.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svturr_render.png"
+    },
+    "svwalk": {
+        thumbnailUrl: "/vehicles/svwalk.png",
+        sourceUrl: "https://battlezone.fandom.com/wiki/File:Svwalk_render.png"
+    }
+});
