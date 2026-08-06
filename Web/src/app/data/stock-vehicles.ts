@@ -10,33 +10,34 @@ export interface StockFactionDefinition {
     sourceUrl: string;
 }
 
+// Faction emblems are same-origin static assets. External Drive pages are attribution links only.
 export const STOCK_FACTIONS: Readonly<Record<StockFactionKey, StockFactionDefinition>> = Object.freeze({
     nsdf: {
         key: 'nsdf',
         name: 'NSDF',
         prefix: 'av',
-        logoUrl: 'https://drive.google.com/uc?export=view&id=1XHHD9jHNMkZDkir606R_Zd3r5xPSehGQ',
+        logoUrl: '/factions/nsdf.svg',
         sourceUrl: 'https://drive.google.com/file/d/1XHHD9jHNMkZDkir606R_Zd3r5xPSehGQ/view'
     },
     blackDog: {
         key: 'blackDog',
         name: 'Black Dog',
         prefix: 'bv',
-        logoUrl: 'https://drive.google.com/uc?export=view&id=18BR_5bKdT0w9uVPbhlVYvtqc-rvHWqd-',
+        logoUrl: '/factions/black-dog.svg',
         sourceUrl: 'https://drive.google.com/file/d/18BR_5bKdT0w9uVPbhlVYvtqc-rvHWqd-/view'
     },
     cca: {
         key: 'cca',
         name: 'CCA',
         prefix: 'sv',
-        logoUrl: 'https://drive.google.com/uc?export=view&id=1pNEXq1wXUnN5eV4GkpQgBwXXeyrll6Kr',
+        logoUrl: '/factions/cca.svg',
         sourceUrl: 'https://drive.google.com/file/d/1pNEXq1wXUnN5eV4GkpQgBwXXeyrll6Kr/view'
     },
     cra: {
         key: 'cra',
         name: 'CRA',
         prefix: 'cv',
-        logoUrl: 'https://drive.google.com/uc?export=view&id=1hote8N2Ix3NiczEHqR6VkJcFZi3NC1yi',
+        logoUrl: '/factions/cra.svg',
         sourceUrl: 'https://drive.google.com/file/d/1hote8N2Ix3NiczEHqR6VkJcFZi3NC1yi/view'
     }
 });
