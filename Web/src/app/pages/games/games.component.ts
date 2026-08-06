@@ -99,6 +99,20 @@ export class GamesComponent implements OnInit, OnDestroy {
         return String(value);
     }
 
+    /**
+     * Battlezone reports the Steam Workshop published-file ID in the mod field for Workshop games.
+     * Non-numeric values such as stock/local mod labels are deliberately left as plain text.
+     */
+    workshopUrl(mod: string | null | undefined): string | null {
+        const publishedFileId = mod?.trim();
+
+        if (!publishedFileId || !/^[1-9]\d*$/.test(publishedFileId)) {
+            return null;
+        }
+
+        return `https://steamcommunity.com/sharedfiles/filedetails/?id=${publishedFileId}`;
+    }
+
     yesNo(value: boolean | null | undefined): string {
         return value ? 'Yes' : 'No';
     }
