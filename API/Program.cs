@@ -1,6 +1,7 @@
 using BZAPI.Activity;
 using BZAPI.Bot;
 using BZAPI.Configuration;
+using BZAPI.Maps;
 using BZAPI.Steam;
 using BZAPI.Storage;
 using BZAPI.Websocket;
@@ -12,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<BattlezoneOptions>(builder.Configuration.GetSection(BattlezoneOptions.SectionName));
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection(SteamOptions.SectionName));
+builder.Services.Configure<MapMetadataOptions>(builder.Configuration.GetSection(MapMetadataOptions.SectionName));
 builder.Services.Configure<LobbyBotOptions>(builder.Configuration.GetSection(LobbyBotOptions.SectionName));
 builder.Services.Configure<ChatObserverOptions>(builder.Configuration.GetSection(ChatObserverOptions.SectionName));
 builder.Services.Configure<ActivityOptions>(builder.Configuration.GetSection(ActivityOptions.SectionName));
@@ -51,6 +53,7 @@ builder.Services.AddSingleton<IChatStore, ChatStore>();
 builder.Services.AddSingleton<IActivityStore, ActivityStore>();
 builder.Services.AddSingleton<ISteamAvatarProvider, SteamAvatarProvider>();
 builder.Services.AddSingleton<ISteamWorkshopProvider, SteamWorkshopProvider>();
+builder.Services.AddSingleton<IMapMetadataProvider, MapMetadataProvider>();
 builder.Services.AddSingleton<LobbyBotCoordinator>();
 builder.Services.AddSingleton<LobbyConnectionState>();
 builder.Services.AddHostedService<BZ98LobbyWatcher>();
