@@ -39,7 +39,7 @@ builder.Services.AddCors(options =>
 // headers supplied by that proxy so generated URLs and request metadata use the public scheme.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    options.ForwardedHeaders = XForwardedHeaders();
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
@@ -124,6 +124,3 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.Run();
-
-static ForwardedHeaders XForwardedHeaders() =>
-    ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
