@@ -21,10 +21,10 @@
         <header class="lobby-hero">
             <div class="lobby-hero-main">
                 <div class="eyebrow">{{ current.isChat ? 'Waiting room' : 'Game lobby' }} · {{ current.id }}</div>
-                <h1>{{ current.isChat ? lobbyDisplayName(current) : display(current.stats?.mapFile) }}</h1>
+                <h1>{{ current.isChat ? lobbyDisplayName(current) : mapTitle(current) }}</h1>
                 <p class="hero-subtitle">
                     <ng-container *ngIf="!current.isChat; else chatSubtitle">
-                        {{ gameTypeLabel(current.metaData?.gameType) }} · {{ launchStatus(current) }} · {{ lobbyDisplayName(current) }}
+                        {{ mapModeLabel(current) }} · {{ launchStatus(current) }} · {{ lobbyDisplayName(current) }}
                     </ng-container>
                     <ng-template #chatSubtitle>Public Battlezone chat lobby · read-only from the web</ng-template>
                 </p>
@@ -35,6 +35,7 @@
                         <fa-icon [icon]="current.isLocked || current.isPrivate || current.hasPassword ? faLock : faLockOpen"></fa-icon>
                         {{ current.hasPassword ? 'Passworded' : (current.isLocked || current.isPrivate ? 'Restricted' : 'Open') }}
                     </span>
+                    <span class="status-pill neutral" *ngIf="!current.isChat">{{ mapSourceLabel(current) }}</span>
                     <span class="status-pill neutral" *ngFor="let platform of platformSummary">{{ platform.label }} {{ platform.count }}</span>
                 </div>
             </div>
@@ -79,16 +80,16 @@
                         <ng-container *ngIf="workshop.creatorProfileUrl"> · <a [href]="workshop.creatorProfileUrl" target="_blank" rel="noopener noreferrer">Creator profile</a></ng-container>
                     </small>
                     <a [href]="workshop.workshopUrl" target="_blank" rel="noopener noreferrer" *ngIf="workshop.previewUrl">
-                        <img class="img-fluid rounded mt-2" style="max-height: 120px" [src]="workshop.previewUrl" [alt]="workshop.title + ' Workshop preview'" loading="lazy">
+                        <img class="img-fluid rounded mt-2" style="max-height: 120px" [src]="workshop.previewUrl" [alt]="workshop.title + ' Workshop preview'" loading="lazy" (error)="hideBrokenImage($event)">
                     </a>
                 </ng-container>
                 <ng-template #rawModSummary>
-                    <strong>{{ display(current.stats?.mod) }}</strong>
+                    <strong>{{ current.map?.isStock ? 'Stock' : display(current.stats?.mod) }}</strong>
                     <small>
                         <ng-container *ngIf="workshopUrl(current.stats?.mod) as workshop; else localMod">
                             <a [href]="workshop" target="_blank" rel="noopener noreferrer"><fa-icon [icon]="faLink"></fa-icon> Open Workshop item</a>
                         </ng-container>
-                        <ng-template #localMod>Stock/local when no Workshop ID is reported</ng-template>
+                        <ng-template #localMod>{{ current.map?.isStock ? 'Base-game content' : 'No Workshop item resolved' }}</ng-template>
                     </small>
                 </ng-template>
             </article>
@@ -97,13 +98,34 @@
         <section class="panel" *ngIf="!current.isChat">
             <div class="panel-heading">
                 <div>
-                    <div class="eyebrow">Game configuration</div>
-                    <h2>Rules and map</h2>
+                    <div class="eyebrow">Map</div>
+                    <h2>{{ mapTitle(current) }}</h2>
                 </div>
+                <span class="count-badge">{{ mapModeLabel(current) }}</span>
             </div>
 
-            <div class="rule-grid">
+            <div class="map-showcase" *ngIf="current.map as map; else mapMetadataUnavailable">
+                <a class="map-preview" *ngIf="map.imageUrl" [href]="map.imageUrl" target="_blank" rel="noopener noreferrer">
+                    <img [src]="map.imageUrl" [alt]="(map.title || map.mapFile) + ' map preview'" loading="lazy" (error)="hideBrokenImage($event)">
+                </a>
+                <div class="map-copy">
+                    <div class="map-meta-row">
+                        <span class="map-chip">{{ mapSourceLabel(current) }}</span>
+                        <span class="map-chip" *ngIf="map.modeLabel">{{ map.modeLabel }}</span>
+                        <span class="map-chip" *ngIf="map.minPlayers || map.maxPlayers">Players {{ mapPlayerRange(current) }}</span>
+                    </div>
+                    <h3>{{ map.title || map.mapFile }}</h3>
+                    <div class="map-file">{{ map.mapFile }}</div>
+                    <p *ngIf="map.description">{{ map.description }}</p>
+                </div>
+            </div>
+            <ng-template #mapMetadataUnavailable>
+                <div class="empty-inline">No external map metadata was resolved. The raw map filename and game settings are still shown below.</div>
+            </ng-template>
+
+            <div class="rule-grid mt-3">
                 <div><span>Map file</span><strong>{{ display(current.stats?.mapFile) }}</strong></div>
+                <div><span>Game mode</span><strong>{{ mapModeLabel(current) }}</strong></div>
                 <div><span>CRC32</span><strong>{{ display(current.stats?.crc32) }}</strong></div>
                 <div><span>Player limit</span><strong>{{ display(current.stats?.playerLimit) }}</strong></div>
                 <div><span>Time limit</span><strong>{{ display(current.stats?.timeLimit) }}</strong></div>
@@ -190,8 +212,16 @@
                 <div><dt>Private</dt><dd>{{ yesNo(current.isPrivate) }}</dd></div>
                 <div><dt>Passworded</dt><dd>{{ yesNo(current.hasPassword) }}</dd></div>
                 <div><dt>Metadata name</dt><dd>{{ display(current.metaData?.name) }}</dd></div>
-                <div><dt>Game type</dt><dd>{{ display(current.metaData?.gameType) }}</dd></div>
+                <div><dt>Lobby game-type flag</dt><dd>{{ gameTypeLabel(current.metaData?.gameType) }} ({{ display(current.metaData?.gameType) }})</dd></div>
                 <div><dt>Game version</dt><dd>{{ display(current.metaData?.gameVersion) }}</dd></div>
+                <ng-container *ngIf="current.map as map">
+                    <div><dt>Map source</dt><dd>{{ mapSourceLabel(current) }}</dd></div>
+                    <div><dt>Map mode</dt><dd>{{ display(map.modeLabel) }} ({{ display(map.modeCode) }})</dd></div>
+                    <div><dt>Map base type</dt><dd>{{ display(map.typeLabel) }} ({{ display(map.typeCode) }})</dd></div>
+                    <div><dt>Map players</dt><dd>{{ mapPlayerRange(current) }}</dd></div>
+                    <div><dt>Custom type</dt><dd>{{ display(map.customTypeName) }} ({{ display(map.customTypeCode) }})</dd></div>
+                    <div><dt>Map metadata mod ID</dt><dd>{{ display(map.modId) }}</dd></div>
+                </ng-container>
                 <ng-container *ngIf="current.workshop as workshop">
                     <div><dt>Workshop ID</dt><dd>{{ workshop.publishedFileId }}</dd></div>
                     <div><dt>Workshop subscriptions</dt><dd>{{ display(workshop.subscriptions) }}</dd></div>
