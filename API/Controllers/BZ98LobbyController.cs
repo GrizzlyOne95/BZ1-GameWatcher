@@ -35,5 +35,25 @@ namespace BZAPI.Controllers
                 .Select(lobby => lobby.ToResponse(_chatStore.GetRecent(lobby.Id)))
                 .ToList());
         }
+
+        /// <summary>
+        /// Returns one currently listed lobby for stable detail/share pages. A lobby disappearing
+        /// from the upstream list is represented as 404 rather than returning a stale cached copy.
+        /// </summary>
+        [HttpGet("{id:int}")]
+        [ProducesResponseType(typeof(LobbyResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public ActionResult<LobbyResponse> GetLobby(int id)
+        {
+            var snapshot = _lobbyStore.Current;
+            var lobby = snapshot.Lobbies.FirstOrDefault(candidate => candidate.Id == id);
+
+            if (lobby is null)
+            {
+                return NotFound();
+            }
+
+            return Ok(lobby.ToResponse(_chatStore.GetRecent(lobby.Id)));
+        }
     }
 }

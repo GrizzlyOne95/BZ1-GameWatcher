@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { ActivityComponent } from './pages/activity/activity.component';
 import { GamesComponent } from './pages/games/games.component';
 import { JoinGameComponent } from './pages/join-game/join-game.component';
+import { LobbyDetailComponent } from './pages/lobby-detail/lobby-detail.component';
 import { UnitDatabaseComponent } from './pages/unit-database/unit-database.component';
 
 export const routes: Routes = [
@@ -21,6 +22,10 @@ export const routes: Routes = [
         path: 'unit-database',
         redirectTo: '/units',
         pathMatch: 'full'
+    },
+    {
+        path: 'lobby/:lobbyId',
+        component: LobbyDetailComponent
     },
     {
         path: 'join/:lobbyId',
