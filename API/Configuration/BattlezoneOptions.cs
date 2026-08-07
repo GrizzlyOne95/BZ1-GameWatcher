@@ -20,15 +20,11 @@ namespace BZAPI.Configuration
         public TimeSpan? StaleConnectionTimeout { get; set; } = TimeSpan.FromMinutes(5);
 
         /// <summary>
-        /// How long to wait before reconnecting after a connection error.
+        /// Optional addresses whose users should be omitted from the visible lobby member list.
+        /// Empty by default: third-party bridge/service accounts are treated like any other user.
+        /// Network addresses themselves are still excluded from the public API response model.
         /// </summary>
-        public TimeSpan ErrorReconnectTimeout { get; set; } = TimeSpan.FromSeconds(10);
-
-        /// <summary>
-        /// Users connecting from these addresses are service accounts and are hidden from the
-        /// public lobby list.
-        /// </summary>
-        public string[] HiddenUserIpAddresses { get; set; } = ["::ffff:54.200.83.68"];
+        public string[] HiddenUserIpAddresses { get; set; } = [];
 
         /// <summary>
         /// Steam IDs flagged with <see cref="Models.BZ98User.IsDangerous"/>. The default mirrors
