@@ -5,6 +5,11 @@ Live lobby list for **Battlezone 98 Redux**, running at [bz98gamewatcher.com](ht
 The site shows the games currently open, who is in them, and lets you jump straight into a lobby
 through Steam.
 
+<img width="3733" height="1919" alt="image" src="https://github.com/user-attachments/assets/fd3db1cd-2f7f-474f-92a4-eeeade5bb9ee" />
+
+<img width="3769" height="1924" alt="image" src="https://github.com/user-attachments/assets/8761a887-d63b-48a5-82f1-befbb6ed905d" />
+
+
 ## How it works
 
 ```text
