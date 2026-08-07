@@ -51,6 +51,7 @@ builder.Services.AddSingleton<IChatStore, ChatStore>();
 builder.Services.AddSingleton<IActivityStore, ActivityStore>();
 builder.Services.AddSingleton<ISteamAvatarProvider, SteamAvatarProvider>();
 builder.Services.AddSingleton<LobbyBotCoordinator>();
+builder.Services.AddSingleton<LobbyConnectionState>();
 builder.Services.AddHostedService<BZ98LobbyWatcher>();
 builder.Services.AddHostedService<BZ98ChatObserver>();
 builder.Services.AddHostedService<ActivitySampler>();
@@ -99,8 +100,13 @@ app.UseCors(CorsPolicyName);
 app.MapControllers();
 
 // Render uses this path for deploy and runtime health checks. Lobby data can legitimately still be
-// empty immediately after a cold start, so process health is reported separately from snapshot age.
-app.MapGet("/api/health", (ILobbyStore store, IActivityStore activity, LobbyBotCoordinator bot) =>
+// unchanged for a long time, so the websocket connection state is reported separately from the
+// timestamp of the most recent lobby-list mutation.
+app.MapGet("/api/health", (
+    ILobbyStore store,
+    IActivityStore activity,
+    LobbyConnectionState lobbyConnection,
+    LobbyBotCoordinator bot) =>
 {
     var snapshot = store.Current;
 
@@ -109,6 +115,7 @@ app.MapGet("/api/health", (ILobbyStore store, IActivityStore activity, LobbyBotC
         status = "ok",
         lobbyCount = snapshot.Lobbies.Count,
         lastUpdatedUtc = snapshot.LastUpdatedUtc,
+        lobbyConnection = lobbyConnection.Current,
         activityHistoryStartedUtc = activity.FirstSampleUtc,
         activityLastSampleUtc = activity.LastSampleUtc,
         activityStorage = activity.StorageKind,
