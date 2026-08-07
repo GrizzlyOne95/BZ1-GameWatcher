@@ -260,15 +260,27 @@ export class GamesComponent implements OnInit, OnDestroy {
         return value ? 'Yes' : 'No';
     }
 
+    /**
+     * The lobby metadata gameType field is a validity marker in BZ98R (0 broken, 1 valid), not
+     * the actual Deathmatch/Strategy/MPI mode. Actual mode comes from optional map metadata.
+     */
     gameTypeLabel(gameType: string | null | undefined): string {
         switch (gameType) {
             case '0':
-                return 'MPI';
+                return 'Broken/invalid';
             case '1':
-                return 'Strategy';
+                return 'Valid';
             default:
                 return this.display(gameType);
         }
+    }
+
+    mapTitle(lobby: BZ98LobbyView): string {
+        return lobby.map?.title?.trim() || this.display(lobby.stats?.mapFile);
+    }
+
+    mapModeLabel(lobby: BZ98LobbyView): string {
+        return lobby.map?.modeLabel?.trim() || this.gameTypeLabel(lobby.metaData?.gameType);
     }
 
     launchStatus(lobby: BZ98LobbyView): string {
