@@ -1,0 +1,77 @@
+.watcher-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid #3b4650;
+    border-radius: 0.55rem;
+    color: #cbd4dc;
+    background: #1c2227;
+    line-height: 1.1;
+}
+
+.status-dot {
+    width: 0.58rem;
+    height: 0.58rem;
+    border-radius: 50%;
+    flex: 0 0 auto;
+    background: #77828c;
+    box-shadow: 0 0 0 0.15rem rgba(119, 130, 140, 0.16);
+}
+
+.status-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.status-copy strong {
+    color: #e8eef3;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-copy small {
+    margin-top: 0.12rem;
+    color: #909ca7;
+    font-size: 0.62rem;
+    white-space: nowrap;
+}
+
+.watcher-status.connected {
+    border-color: #315f47;
+    background: rgba(42, 94, 65, 0.15);
+}
+
+.watcher-status.connected .status-dot {
+    background: #56c58a;
+    box-shadow: 0 0 0 0.15rem rgba(86, 197, 138, 0.15);
+}
+
+.watcher-status.disconnected {
+    border-color: #755f28;
+    background: rgba(143, 103, 18, 0.13);
+}
+
+.watcher-status.disconnected .status-dot {
+    background: #e4b64d;
+    box-shadow: 0 0 0 0.15rem rgba(228, 182, 77, 0.15);
+}
+
+.watcher-status.starting,
+.watcher-status.unknown {
+    opacity: 0.86;
+}
+
+@media (max-width: 767.98px) {
+    .watcher-status {
+        padding: 0.3rem 0.45rem;
+    }
+
+    .status-copy small {
+        display: none;
+    }
+}
