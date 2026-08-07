@@ -19,6 +19,7 @@ namespace BZAPI.Websocket
         private const string ModNameSeparator = "~~";
 
         private readonly ILobbyStore _store;
+        private readonly IChatStore _chat;
         private readonly ISteamAvatarProvider _avatars;
         private readonly BattlezoneOptions _options;
         private readonly LobbyBotCoordinator _bot;
@@ -35,12 +36,14 @@ namespace BZAPI.Websocket
 
         public BZ98LobbyWatcher(
             ILobbyStore store,
+            IChatStore chat,
             ISteamAvatarProvider avatars,
             IOptions<BattlezoneOptions> options,
             LobbyBotCoordinator bot,
             ILogger<BZ98LobbyWatcher> logger)
         {
             _store = store;
+            _chat = chat;
             _avatars = avatars;
             _options = options.Value;
             _bot = bot;
@@ -154,6 +157,7 @@ namespace BZAPI.Websocket
                     if (removal?.Data is not null)
                     {
                         _store.Remove(removal.Data.Id);
+                        _chat.RemoveLobby(removal.Data.Id);
                     }
 
                     _bot.OnLobbyRemoved(text);
@@ -239,6 +243,8 @@ namespace BZAPI.Websocket
                 return;
             }
 
+            var removedFromPublicRoster = 0;
+
             foreach (var key in lobby.Users.Keys.ToList())
             {
                 if (!lobby.Users.TryGetValue(key, out var user) || user is null)
@@ -255,9 +261,21 @@ namespace BZAPI.Websocket
                     lobby.Host = user;
                 }
 
+                // Our read-only chat observer is a real Web user in the upstream lobby so it can
+                // receive chat events. Exclude only its exact server-issued ID from Game Watcher's
+                // public roster/count so it does not make an empty waiting room look active. This
+                // does not hide unrelated Web users or third-party bridge accounts such as !BRIDGE.
+                if (_chat.IsObserverUser(lobby.Id, user.Id ?? key))
+                {
+                    lobby.Users.Remove(key);
+                    removedFromPublicRoster++;
+                    continue;
+                }
+
                 if (user.IPAddress is not null && _options.HiddenUserIpAddresses.Contains(user.IPAddress))
                 {
                     lobby.Users.Remove(key);
+                    removedFromPublicRoster++;
                     continue;
                 }
 
@@ -291,6 +309,16 @@ namespace BZAPI.Websocket
                     _logger.LogDebug(
                         "Steam-authenticated user {UserKey} did not contain a parsable Steam ID.",
                         steamKey);
+                }
+            }
+
+            if (removedFromPublicRoster > 0)
+            {
+                lobby.UserCount = Math.Max(0, lobby.UserCount - removedFromPublicRoster);
+
+                if (lobby.MetaData is not null)
+                {
+                    lobby.MetaData.UserCount = lobby.UserCount.ToString();
                 }
             }
         }
