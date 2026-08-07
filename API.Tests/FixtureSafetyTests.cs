@@ -145,11 +145,10 @@ public sealed partial class FixtureSafetyTests
             return;
         }
 
-        if (TryParseIp(value, out var exact) && !IsDocumentationAddress(exact))
-        {
-            violations.Add($"{fileName} {path} contains non-documentation IP address {value}.");
-        }
-
+        // Do not feed arbitrary numeric/version strings to IPAddress.TryParse: it accepts legacy
+        // shorthand forms such as "1" and "2.0.185" as IPv4. Generic fixture scanning starts from
+        // syntactic dotted-quad/IPv6 candidates instead; explicitly named network properties are
+        // still parsed strictly by ValidateNetworkProperty above.
         if (Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
             TryParseIp(uri.Host, out var hostAddress) &&
             !IsDocumentationAddress(hostAddress))
@@ -179,7 +178,14 @@ public sealed partial class FixtureSafetyTests
     private static bool TryParseIp(string? value, out IPAddress address)
     {
         var candidate = value?.Trim().Trim('[', ']');
-        return IPAddress.TryParse(candidate, out address!);
+        if (candidate is not null && IPAddress.TryParse(candidate, out var parsed) && parsed is not null)
+        {
+            address = parsed;
+            return true;
+        }
+
+        address = IPAddress.None;
+        return false;
     }
 
     private static bool IsDocumentationAddress(IPAddress address)
