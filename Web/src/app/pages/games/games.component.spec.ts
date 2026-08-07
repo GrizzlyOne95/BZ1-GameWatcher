@@ -268,6 +268,7 @@ describe('GamesComponent', () => {
             ? 'America/New_York'
             : component.timeZoneOptions[0];
         const select = document.createElement('select');
+        select.add(new Option(zone, zone));
         select.value = zone;
 
         component.selectTimeZone({ currentTarget: select } as unknown as Event);
