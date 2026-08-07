@@ -159,15 +159,56 @@ export class LobbyDetailComponent implements OnInit, OnDestroy {
             .replace(/^~chat~(?:pub|pri)~~/i, '') || rawName;
     }
 
+    /**
+     * The upstream metadata gameType flag is a validity state, not the actual multiplayer mode.
+     * Actual Deathmatch/Strategy/MPI/etc. comes from the map metadata service when available.
+     */
     gameTypeLabel(value: string | null | undefined): string {
         switch (value) {
             case '0':
-                return 'MPI';
+                return 'Broken/invalid';
             case '1':
-                return 'Strategy';
+                return 'Valid';
             default:
                 return this.display(value);
         }
+    }
+
+    mapTitle(lobby: BZ98Lobby): string {
+        return lobby.map?.title?.trim() || this.display(lobby.stats?.mapFile);
+    }
+
+    mapModeLabel(lobby: BZ98Lobby): string {
+        return lobby.map?.modeLabel?.trim() || 'Mode not resolved';
+    }
+
+    mapSourceLabel(lobby: BZ98Lobby): string {
+        if (lobby.map?.isStock) {
+            return 'Stock map';
+        }
+
+        const workshopId = lobby.workshop?.publishedFileId || this.numericWorkshopId(lobby.stats?.mod);
+        if (workshopId) {
+            return `Workshop ${workshopId}`;
+        }
+
+        const modId = lobby.map?.modId?.trim() || lobby.stats?.mod?.trim();
+        return modId ? `Mod ${modId}` : 'Source not resolved';
+    }
+
+    mapPlayerRange(lobby: BZ98Lobby): string {
+        const min = lobby.map?.minPlayers;
+        const max = lobby.map?.maxPlayers;
+        if (min && max) {
+            return min === max ? `${min}` : `${min}–${max}`;
+        }
+        if (min) {
+            return `${min}+`;
+        }
+        if (max) {
+            return `Up to ${max}`;
+        }
+        return 'Not reported';
     }
 
     launchStatus(lobby: BZ98Lobby): string {
@@ -184,8 +225,8 @@ export class LobbyDetailComponent implements OnInit, OnDestroy {
     }
 
     workshopUrl(mod: string | null | undefined): string | null {
-        const publishedFileId = mod?.trim();
-        return publishedFileId && /^[1-9]\d*$/.test(publishedFileId)
+        const publishedFileId = this.numericWorkshopId(mod);
+        return publishedFileId
             ? `https://steamcommunity.com/sharedfiles/filedetails/?id=${publishedFileId}`
             : null;
     }
@@ -202,6 +243,13 @@ export class LobbyDetailComponent implements OnInit, OnDestroy {
         }
 
         return 'Unknown';
+    }
+
+    hideBrokenImage(event: Event): void {
+        const image = event.currentTarget as HTMLImageElement | null;
+        if (image) {
+            image.hidden = true;
+        }
     }
 
     joinGame(): void {
@@ -282,6 +330,11 @@ export class LobbyDetailComponent implements OnInit, OnDestroy {
             delete options.timeZone;
             return new Intl.DateTimeFormat(undefined, options).format(date);
         }
+    }
+
+    private numericWorkshopId(value: string | null | undefined): string | null {
+        const normalized = value?.trim();
+        return normalized && /^[1-9]\d*$/.test(normalized) ? normalized : null;
     }
 
     private getStoredTimeZone(): string {

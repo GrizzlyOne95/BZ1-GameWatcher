@@ -3,7 +3,8 @@
 Live lobby list for **Battlezone 98 Redux**, running at https://bz1-gamewatcher.onrender.com/games
 
 The site shows the games currently open, who is in them, recent read-only public waiting-room chat,
-privacy-safe multiplayer activity history, and lets you jump straight into a lobby through Steam.
+privacy-safe multiplayer activity history, recognized map information, and lets you jump straight
+into a lobby through Steam.
 
 <img width="3733" height="1919" alt="image" src="https://github.com/user-attachments/assets/fd3db1cd-2f7f-474f-92a4-eeeade5bb9ee" />
 
@@ -17,9 +18,11 @@ Rebellion lobby server ──WebSocket──▶ API (ASP.NET Core 10) ──REST
 ```
 
 - **API** (`API/`) maintains the lobby connection, keeps an in-memory snapshot, enriches Steam
-  players with avatars, observes selected public chat lobbies read-only, records aggregate activity,
-  and serves the public API.
-- **Web** (`Web/`) polls the API every few seconds and renders game, waiting-room, unit, and activity views.
+  players with avatars, resolves public Steam Workshop metadata, resolves public BZ98 map titles,
+  previews and game modes, observes selected public chat lobbies read-only, records aggregate
+  activity, and serves the public API.
+- **Web** (`Web/`) polls the API every few seconds and renders game, waiting-room, lobby-detail,
+  unit, and activity views.
 - **Render image** (`Dockerfile.render`) builds both projects and serves Angular from the ASP.NET
   application's `wwwroot`, keeping the UI and API on one origin.
 - **Optional lobby bot** can join or recreate a configured chat lobby, greet players, and send timed
@@ -47,7 +50,8 @@ The API reads settings from `API/appsettings.json`, environment variables, and .
 
 | Setting | Environment variable | Description |
 | --- | --- | --- |
-| `Steam:ApiKey` | `Steam__ApiKey` | Steam Web API key. Without it, the site still works but players show without avatars. |
+| `Steam:ApiKey` | `Steam__ApiKey` | Steam Web API key. Without it, the site still works but players show without avatars. Public Workshop metadata does not require this key. |
+| `MapMetadata:BaseUrl` | `MapMetadata__BaseUrl` | Public BZ98R map metadata root used for map titles, previews, player ranges, and actual game modes. Empty disables map enrichment without affecting live lobby data. |
 | `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0` | Origins allowed to call the API directly. Not needed when the UI and API are same-origin. |
 | `Battlezone:LobbyServerUrl` | `Battlezone__LobbyServerUrl` | WebSocket endpoint of the lobby server. |
 | `Battlezone:FlaggedSteamIds` | `Battlezone__FlaggedSteamIds__0` | Steam IDs marked with `isDangerous` in API responses. Empty by default. |
@@ -59,6 +63,12 @@ The API reads settings from `API/appsettings.json`, environment variables, and .
 | `LobbyBot:Enabled` | `LobbyBot__Enabled` | Enables the optional chat-lobby bot. Disabled by default. |
 | `LobbyBot:PlayerName` | `LobbyBot__PlayerName` | Bot identity shown in the lobby. |
 | `LobbyBot:LobbyName` | `LobbyBot__LobbyName` | Named chat lobby the bot should join or claim. |
+
+Map enrichment uses the public BZ98R map-data service at `gamelistassets.iondriver.com`, following
+the map/mod lookup and mode-override semantics used by Nielk1's open-source
+`MultiplayerSessionList`. It is optional enrichment: the Rebellion lobby payload remains the live
+source of lobby/map filename data, and map-provider failures fall back to the raw values rather than
+making lobbies unavailable.
 
 Activity persistence, export, and the opt-in paid Render disk example are documented in
 [`ACTIVITY_HISTORY.md`](ACTIVITY_HISTORY.md). Additional bot and deployment settings are documented in

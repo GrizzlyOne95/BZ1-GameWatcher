@@ -1,4 +1,5 @@
 using System.Globalization;
+using BZAPI.Maps;
 using BZAPI.Models;
 using BZAPI.Models.Responses;
 using BZAPI.Steam;
@@ -13,11 +14,13 @@ namespace BZAPI.Controllers
         ILobbyStore lobbyStore,
         IChatStore chatStore,
         ISteamWorkshopProvider workshopProvider,
+        IMapMetadataProvider mapMetadataProvider,
         ILogger<BZ98LobbyController> logger) : ControllerBase
     {
         private readonly ILobbyStore _lobbyStore = lobbyStore;
         private readonly IChatStore _chatStore = chatStore;
         private readonly ISteamWorkshopProvider _workshopProvider = workshopProvider;
+        private readonly IMapMetadataProvider _mapMetadataProvider = mapMetadataProvider;
         private readonly ILogger<BZ98LobbyController> _logger = logger;
 
         /// <summary>
@@ -36,12 +39,7 @@ namespace BZAPI.Controllers
                 snapshot.Lobbies.Count,
                 snapshot.LastUpdatedUtc);
 
-            var responses = await Task.WhenAll(snapshot.Lobbies.Select(async lobby =>
-            {
-                var workshop = await ResolveWorkshopAsync(lobby, cancellationToken);
-                return lobby.ToResponse(_chatStore.GetRecent(lobby.Id), workshop);
-            }));
-
+            var responses = await Task.WhenAll(snapshot.Lobbies.Select(lobby => BuildResponseAsync(lobby, cancellationToken)));
             return Ok(responses);
         }
 
@@ -62,8 +60,20 @@ namespace BZAPI.Controllers
                 return NotFound();
             }
 
-            var workshop = await ResolveWorkshopAsync(lobby, cancellationToken);
-            return Ok(lobby.ToResponse(_chatStore.GetRecent(lobby.Id), workshop));
+            return Ok(await BuildResponseAsync(lobby, cancellationToken));
+        }
+
+        private async Task<LobbyResponse> BuildResponseAsync(BZ98Lobby lobby, CancellationToken cancellationToken)
+        {
+            var workshopTask = ResolveWorkshopAsync(lobby, cancellationToken);
+            var mapTask = ResolveMapAsync(lobby, cancellationToken);
+
+            await Task.WhenAll(workshopTask, mapTask);
+
+            return lobby.ToResponse(
+                _chatStore.GetRecent(lobby.Id),
+                await workshopTask,
+                await mapTask);
         }
 
         private Task<SteamWorkshopItem?> ResolveWorkshopAsync(BZ98Lobby lobby, CancellationToken cancellationToken)
@@ -77,6 +87,20 @@ namespace BZAPI.Controllers
             }
 
             return _workshopProvider.GetItemAsync(publishedFileId, cancellationToken);
+        }
+
+        private Task<BZ98MapMetadata?> ResolveMapAsync(BZ98Lobby lobby, CancellationToken cancellationToken)
+        {
+            var mapFile = lobby.Stats?.MapFile?.Trim();
+            if (lobby.IsChat || string.IsNullOrWhiteSpace(mapFile))
+            {
+                return Task.FromResult<BZ98MapMetadata?>(null);
+            }
+
+            // MultiplayerSessionList treats a missing map mod as stock mod 0. Preserve any
+            // reported non-zero/non-numeric value because the map metadata service keys on both.
+            var modId = lobby.Stats?.Mod?.Trim();
+            return _mapMetadataProvider.GetMapAsync(mapFile, string.IsNullOrWhiteSpace(modId) ? "0" : modId, cancellationToken);
         }
     }
 }

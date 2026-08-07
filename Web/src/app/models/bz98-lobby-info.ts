@@ -16,6 +16,7 @@ export interface BZ98Lobby {
     metaData: BZ98MetaData | null;
     stats: BZ98LobbyData | null;
     workshop?: BZ98WorkshopItem | null;
+    map?: BZ98MapMetadata | null;
     owner: string | null;
     userCount: number;
     users: Record<string, BZ98User>;
@@ -50,6 +51,24 @@ export interface BZ98WorkshopItem {
     workshopUrl: string;
     updatedUtc: string | null;
     subscriptions: number | null;
+}
+
+/** Optional public metadata resolved for a lobby's map/mod pair. */
+export interface BZ98MapMetadata {
+    mapFile: string;
+    modId: string;
+    isStock: boolean;
+    title: string | null;
+    imageUrl: string | null;
+    description: string | null;
+    minPlayers: number | null;
+    maxPlayers: number | null;
+    typeCode: string | null;
+    typeLabel: string | null;
+    modeCode: string | null;
+    modeLabel: string | null;
+    customTypeCode: string | null;
+    customTypeName: string | null;
 }
 
 export interface BZ98ChatMessage {

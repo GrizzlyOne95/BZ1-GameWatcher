@@ -1,3 +1,4 @@
+using BZAPI.Maps;
 using BZAPI.Steam;
 using BZAPI.Storage;
 
@@ -11,7 +12,8 @@ namespace BZAPI.Models.Responses
         public static LobbyResponse ToResponse(
             this BZ98Lobby lobby,
             IReadOnlyList<ChatMessageSnapshot>? recentChat = null,
-            SteamWorkshopItem? workshop = null) => new()
+            SteamWorkshopItem? workshop = null,
+            BZ98MapMetadata? map = null) => new()
         {
             Id = lobby.Id,
             ClientVersion = lobby.ClientVersion,
@@ -28,6 +30,7 @@ namespace BZAPI.Models.Responses
             MetaData = lobby.MetaData?.ToResponse(),
             Stats = lobby.Stats?.ToResponse(),
             Workshop = workshop?.ToResponse(),
+            Map = map?.ToResponse(),
             Users = lobby.Users?
                 .Where(pair => pair.Value is not null)
                 .ToDictionary(pair => pair.Key, pair => pair.Value.ToResponse()) ?? [],
@@ -73,6 +76,24 @@ namespace BZAPI.Models.Responses
             WorkshopUrl = workshop.WorkshopUrl,
             UpdatedUtc = workshop.UpdatedUtc,
             Subscriptions = workshop.Subscriptions
+        };
+
+        private static MapMetadataResponse ToResponse(this BZ98MapMetadata map) => new()
+        {
+            MapFile = map.MapFile,
+            ModId = map.ModId,
+            IsStock = map.IsStock,
+            Title = map.Title,
+            ImageUrl = map.ImageUrl,
+            Description = map.Description,
+            MinPlayers = map.MinPlayers,
+            MaxPlayers = map.MaxPlayers,
+            TypeCode = map.TypeCode,
+            TypeLabel = map.TypeLabel,
+            ModeCode = map.ModeCode,
+            ModeLabel = map.ModeLabel,
+            CustomTypeCode = map.CustomTypeCode,
+            CustomTypeName = map.CustomTypeName
         };
 
         private static LobbyMetaDataResponse ToResponse(this BZ98MetaData metaData) => new()
