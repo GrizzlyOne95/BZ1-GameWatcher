@@ -1,0 +1,136 @@
+:host {
+    display: block;
+}
+
+.about-shell {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 1.5rem clamp(0.75rem, 2vw, 2rem) 3rem;
+}
+
+.about-hero {
+    margin-bottom: 1rem;
+    padding: clamp(1.25rem, 3vw, 2.25rem);
+    border: 1px solid #34404a;
+    border-radius: 0.9rem;
+    background:
+        linear-gradient(115deg, rgba(13, 18, 22, 0.97), rgba(26, 35, 43, 0.9)),
+        url('/poster.jpg') center / cover no-repeat;
+}
+
+.eyebrow {
+    margin-bottom: 0.35rem;
+    color: #91a0ae;
+    font-size: 0.72rem;
+    font-weight: 750;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.about-hero h1 {
+    margin: 0;
+    color: #f3f6f8;
+    font-size: clamp(2rem, 5vw, 3.4rem);
+    font-weight: 350;
+    letter-spacing: -0.04em;
+}
+
+.about-hero p {
+    max-width: 850px;
+    margin: 0.8rem 0 0;
+    color: #bdc8d2;
+    font-size: 1.02rem;
+    line-height: 1.6;
+}
+
+.panel {
+    margin-bottom: 1rem;
+    padding: clamp(1rem, 2vw, 1.35rem);
+    border: 1px solid #323c45;
+    border-radius: 0.8rem;
+    background: #20272d;
+}
+
+.panel h2 {
+    margin: 0 0 1rem;
+    color: #eef2f5;
+    font-size: 1.35rem;
+}
+
+.privacy-grid,
+.facts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.privacy-grid article,
+.facts-grid article,
+.source-list > div {
+    min-width: 0;
+    padding: 0.9rem;
+    border: 1px solid #34404a;
+    border-radius: 0.6rem;
+    background: #262e35;
+}
+
+.privacy-grid h3 {
+    margin: 0 0 0.4rem;
+    color: #dfe6eb;
+    font-size: 1rem;
+}
+
+.privacy-grid p,
+.source-list dd,
+.facts-grid span,
+.panel > p {
+    color: #aeb9c2;
+    line-height: 1.55;
+}
+
+.privacy-grid p {
+    margin: 0;
+}
+
+.source-list {
+    display: grid;
+    gap: 0.65rem;
+    margin: 0;
+}
+
+.source-list dt {
+    margin-bottom: 0.25rem;
+    color: #dfe6eb;
+    font-weight: 700;
+}
+
+.source-list dd {
+    margin: 0;
+}
+
+.facts-grid strong,
+.facts-grid span {
+    display: block;
+}
+
+.facts-grid strong {
+    margin-bottom: 0.3rem;
+    color: #e1e8ed;
+}
+
+.facts-grid code {
+    color: #c4d7e7;
+}
+
+.link-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+@media (max-width: 767.98px) {
+    .privacy-grid,
+    .facts-grid {
+        grid-template-columns: 1fr;
+    }
+}
