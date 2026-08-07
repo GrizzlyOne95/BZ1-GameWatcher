@@ -187,7 +187,7 @@ public sealed class MapMetadataProvider : IMapMetadataProvider
             return null;
         }
 
-        return combined.Scheme is Uri.UriSchemeHttp or Uri.UriSchemeHttps
+        return combined.Scheme == Uri.UriSchemeHttp || combined.Scheme == Uri.UriSchemeHttps
             ? combined.ToString()
             : null;
     }
