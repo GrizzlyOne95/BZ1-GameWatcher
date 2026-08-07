@@ -90,6 +90,15 @@ else
         OnPrepareResponse = context =>
         {
             var path = context.Context.Request.Path;
+
+            // Browsers independently revalidate service-worker scripts, but explicit no-cache
+            // avoids a proxy/CDN pinning an old worker or manifest across a deployment.
+            if (path.Equals("/sw.js") || path.Equals("/manifest.json"))
+            {
+                context.Context.Response.Headers.CacheControl = "no-cache, no-store, must-revalidate";
+                return;
+            }
+
             if (path.StartsWithSegments("/vehicles") || path.StartsWithSegments("/factions"))
             {
                 context.Context.Response.Headers.CacheControl = "public, max-age=86400";
