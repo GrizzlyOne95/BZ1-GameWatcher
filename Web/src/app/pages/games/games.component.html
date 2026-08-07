@@ -4,7 +4,7 @@
     <div class="page-heading d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-2">
         <div>
             <h1 class="display-5 mb-1">Battlezone 98 Redux Lobbies</h1>
-            <p class="text-secondary mb-0">Live game, rules, lobby, and player information reported by the public lobby service.</p>
+            <p class="text-secondary mb-0">Live game, rules, lobby, player, and read-only public chat information reported by the lobby service.</p>
         </div>
 
         <div class="d-flex flex-column align-items-md-end gap-2">
@@ -33,7 +33,7 @@
     </div>
 
     <div class="row g-4">
-        <main class="col-xl-9 col-12">
+        <main class="col-xl-8 col-12">
             <div class="section-heading d-flex align-items-center justify-content-between">
                 <h2 class="mb-0">Games</h2>
                 <span class="count-pill">{{ BZ98Lobbies.length }}</span>
@@ -57,9 +57,9 @@
 
                         <div class="hero-actions">
                             <span class="status-badge players"><fa-icon [icon]="faUser"></fa-icon>{{ lobby.userCount }} / {{ lobby.memberLimit }}</span>
-                            <span class="status-badge" [class.locked]="lobby.isLocked || lobby.isPrivate" [class.open]="!lobby.isLocked && !lobby.isPrivate">
-                                <fa-icon [icon]="lobby.isLocked || lobby.isPrivate ? faLock : faLockOpen"></fa-icon>
-                                {{ lobby.isLocked || lobby.isPrivate ? 'Restricted' : 'Open' }}
+                            <span class="status-badge" [class.locked]="lobby.isLocked || lobby.isPrivate || lobby.hasPassword" [class.open]="!lobby.isLocked && !lobby.isPrivate && !lobby.hasPassword">
+                                <fa-icon [icon]="lobby.isLocked || lobby.isPrivate || lobby.hasPassword ? faLock : faLockOpen"></fa-icon>
+                                {{ lobby.hasPassword ? 'Passworded' : (lobby.isLocked || lobby.isPrivate ? 'Restricted' : 'Open') }}
                             </span>
                             <button *ngIf="!lobby.isLocked && !lobby.isPrivate" (click)="joinGame(lobby)" class="btn btn-primary action-button" type="button">
                                 <img src="steam-icon.png" width="20" height="20" alt=""> Join
@@ -107,6 +107,9 @@
                         <span class="rule-chip" [class.enabled]="lobby.stats?.attributes?.barracks"><b>Barracks</b> {{ yesNo(lobby.stats?.attributes?.barracks) }}</span>
                         <span class="rule-chip" [class.enabled]="lobby.stats?.attributes?.sniper"><b>Sniper</b> {{ yesNo(lobby.stats?.attributes?.sniper) }}</span>
                         <span class="rule-chip" [class.enabled]="lobby.stats?.attributes?.splinter"><b>Splinter</b> {{ yesNo(lobby.stats?.attributes?.splinter) }}</span>
+                        <span class="rule-chip" [class.enabled]="lobby.stats?.syncJoin"><b>Sync join</b> {{ yesNo(lobby.stats?.syncJoin) }}</span>
+                        <span class="rule-chip"><b>Time limit</b> {{ display(lobby.stats?.timeLimit) }}</span>
+                        <span class="rule-chip"><b>Kill limit</b> {{ display(lobby.stats?.killLimit) }}</span>
                     </div>
 
                     <div class="players-heading">
@@ -128,7 +131,7 @@
             </article>
         </main>
 
-        <aside class="col-xl-3 col-12">
+        <aside class="col-xl-4 col-12">
             <div class="section-heading d-flex align-items-center justify-content-between">
                 <h2 class="mb-0">Waiting Room</h2>
                 <span class="count-pill">{{ BZ98ChatLobbies.length }}</span>
@@ -162,6 +165,31 @@
                 <ng-template #noVisibleUsers>
                     <p class="text-secondary mb-0">No public users are visible in this lobby.</p>
                 </ng-template>
+
+                <section class="chat-preview" aria-label="Recent lobby chat">
+                    <div class="chat-preview-header">
+                        <div>
+                            <h4>Recent chat</h4>
+                            <span>Read-only activity view</span>
+                        </div>
+                        <span class="mini-badge">{{ chatLobby.recentChat.length }}</span>
+                    </div>
+
+                    <div class="chat-lines" *ngIf="chatLobby.recentChat.length > 0; else noRecentChat">
+                        <div class="chat-line" *ngFor="let message of chatLobby.recentChat; index as messageIndex; trackBy: trackChat">
+                            <div class="chat-line-heading">
+                                <strong>{{ chatAuthor(chatLobby, message) }}</strong>
+                                <time [attr.datetime]="message.timeUtc">{{ formatTime(message.timeUtc) }}</time>
+                            </div>
+                            <div class="chat-line-text">{{ message.text }}</div>
+                        </div>
+                    </div>
+                    <ng-template #noRecentChat>
+                        <p class="text-secondary small mb-0">No chat has been observed since the watcher joined this lobby.</p>
+                    </ng-template>
+
+                    <p class="chat-readonly-note mb-0">Game Watcher only listens to public lobby chat. Web visitors cannot send messages into Battlezone.</p>
+                </section>
 
                 <details class="detail-panel compact-panel">
                     <summary>All chat-lobby details</summary>
@@ -213,7 +241,7 @@
                 </a>
             </ng-container>
 
-            <a *ngIf="user.isSteam && user.steamCleanId" class="steam-link" href="https://steamcommunity.com/profiles/{{ user.steamCleanId }}/" target="_blank" rel="noopener noreferrer" title="Open Steam profile">
+            <a *ngIf="userPlatform(user) === 'Steam' && user.steamCleanId" class="steam-link" href="https://steamcommunity.com/profiles/{{ user.steamCleanId }}/" target="_blank" rel="noopener noreferrer" title="Open Steam profile">
                 Steam
             </a>
         </div>
@@ -223,15 +251,15 @@
             <dl class="detail-grid player-detail-grid">
                 <div><dt>Player ID</dt><dd>{{ display(user.id) }}</dd></div>
                 <div><dt>Lobby ID</dt><dd>{{ user.lobby }}</dd></div>
-                <div><dt>Authentication type</dt><dd>{{ display(user.authType) }}</dd></div>
+                <div><dt>Authentication type</dt><dd>{{ userPlatform(user) }}</dd></div>
                 <div><dt>Client version</dt><dd>{{ display(user.clientVersion) }}</dd></div>
                 <div><dt>Authenticated</dt><dd>{{ yesNo(user.isAuth) }}</dd></div>
                 <div><dt>Administrator</dt><dd>{{ yesNo(user.isAdmin) }}</dd></div>
-                <div><dt>Battlezone account</dt><dd>{{ yesNo(user.isBB) }}</dd></div>
+                <div><dt>Battlezone account flag</dt><dd>{{ yesNo(user.isBB) }}</dd></div>
                 <div><dt>Flagged dangerous</dt><dd>{{ yesNo(user.isDangerous) }}</dd></div>
                 <div><dt>In lounge</dt><dd>{{ yesNo(user.isInLounge) }}</dd></div>
-                <div><dt>GOG</dt><dd>{{ yesNo(user.isGOG) }}</dd></div>
-                <div><dt>Steam</dt><dd>{{ yesNo(user.isSteam) }}</dd></div>
+                <div><dt>GOG flag</dt><dd>{{ yesNo(user.isGOG) }}</dd></div>
+                <div><dt>Steam flag</dt><dd>{{ yesNo(user.isSteam) }}</dd></div>
                 <div><dt>Test account</dt><dd>{{ yesNo(user.isTest) }}</dd></div>
                 <div><dt>Steam ID</dt><dd>{{ display(user.steamCleanId) }}</dd></div>
                 <div class="detail-wide"><dt>Steam avatar URI</dt><dd class="text-break">{{ display(user.steamImgUri) }}</dd></div>
@@ -245,6 +273,8 @@
                 <div><dt>Mini ID</dt><dd>{{ display(user.metaData?.miniId) }}</dd></div>
                 <div><dt>Team</dt><dd>{{ display(user.metaData?.team) }}</dd></div>
                 <div><dt>Vehicle</dt><dd>{{ vehicleLabel(user.metaData?.vehicle) }}</dd></div>
+                <div><dt>Community patch</dt><dd>{{ display(user.metaData?.communityPatch) }}</dd></div>
+                <div><dt>Shim</dt><dd>{{ display(user.metaData?.communityPatchShim) }}</dd></div>
                 <div class="detail-wide"><dt>Known players</dt><dd class="text-break">{{ display(user.metaData?.knownPlayers) }}</dd></div>
                 <div class="detail-wide"><dt>Ready string</dt><dd class="text-break raw-value">{{ display(user.metaData?.ready) }}</dd></div>
             </dl>
@@ -290,7 +320,7 @@
             </details>
 
             <ng-container *ngIf="user.stats as userStats">
-                <h6 class="detail-subheading">Player-reported stats</h6>
+                <h6 class="detail-subheading">Player-reported settings</h6>
                 <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: userStats}"></ng-container>
             </ng-container>
         </details>
@@ -318,6 +348,7 @@
             <div><dt>Chat lobby</dt><dd>{{ yesNo(lobby.isChat) }}</dd></div>
             <div><dt>Locked</dt><dd>{{ yesNo(lobby.isLocked) }}</dd></div>
             <div><dt>Private</dt><dd>{{ yesNo(lobby.isPrivate) }}</dd></div>
+            <div><dt>Passworded</dt><dd>{{ yesNo(lobby.hasPassword) }}</dd></div>
             <div class="detail-wide"><dt>Direct join URL</dt><dd class="text-break">{{ display(lobby.directJoinUrl) }}</dd></div>
         </dl>
     </div>
@@ -328,9 +359,11 @@
             <div><dt>Game version</dt><dd>{{ display(lobby.metaData?.gameVersion) }}</dd></div>
             <div><dt>Game type</dt><dd>{{ gameTypeLabel(lobby.metaData?.gameType) }} ({{ display(lobby.metaData?.gameType) }})</dd></div>
             <div><dt>Launched</dt><dd>{{ display(lobby.metaData?.launched) }}</dd></div>
+            <div><dt>Game ended</dt><dd>{{ display(lobby.metaData?.gameEnded) }}</dd></div>
             <div><dt>Name</dt><dd>{{ display(lobby.metaData?.name) }}</dd></div>
             <div><dt>Next MID</dt><dd>{{ display(lobby.metaData?.nextMid) }}</dd></div>
             <div><dt>Metadata user count</dt><dd>{{ display(lobby.metaData?.userCount) }}</dd></div>
+            <div class="detail-wide"><dt>Raw lobby name</dt><dd class="text-break raw-value">{{ display(lobby.metaData?.rawName) }}</dd></div>
             <div class="detail-wide"><dt>User pack</dt><dd class="text-break raw-value">{{ display(lobby.metaData?.userPack) }}</dd></div>
             <div class="detail-wide"><dt>Game settings</dt><dd class="text-break raw-value">{{ display(lobby.metaData?.gameSettings) }}</dd></div>
         </dl>
@@ -357,6 +390,7 @@
 
 <ng-template #statsDetails let-stats>
     <dl class="detail-grid">
+        <div><dt>Metadata version</dt><dd>{{ display(stats.metaDataVersion) }}</dd></div>
         <div><dt>Map file</dt><dd>{{ display(stats.mapFile) }}</dd></div>
         <div><dt>CRC32</dt><dd>{{ display(stats.crc32) }}</dd></div>
         <div>
@@ -368,6 +402,10 @@
                 </ng-container>
             </dd>
         </div>
+        <div><dt>Sync join</dt><dd>{{ yesNo(stats.syncJoin) }}</dd></div>
+        <div><dt>Time limit</dt><dd>{{ display(stats.timeLimit) }}</dd></div>
+        <div><dt>Player limit</dt><dd>{{ display(stats.playerLimit) }}</dd></div>
+        <div><dt>Kill limit</dt><dd>{{ display(stats.killLimit) }}</dd></div>
         <div><dt>Lives</dt><dd>{{ display(stats.attributes?.lives) }}</dd></div>
         <div><dt>Satellite</dt><dd>{{ yesNo(stats.attributes?.satellite) }}</dd></div>
         <div><dt>Barracks</dt><dd>{{ yesNo(stats.attributes?.barracks) }}</dd></div>
