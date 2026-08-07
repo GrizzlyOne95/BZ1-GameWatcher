@@ -61,6 +61,9 @@
                                 <fa-icon [icon]="lobby.isLocked || lobby.isPrivate || lobby.hasPassword ? faLock : faLockOpen"></fa-icon>
                                 {{ lobby.hasPassword ? 'Passworded' : (lobby.isLocked || lobby.isPrivate ? 'Restricted' : 'Open') }}
                             </span>
+                            <a class="btn btn-outline-info action-button" href="/lobby/{{ lobby.id }}">
+                                <fa-icon [icon]="faLink"></fa-icon> Details
+                            </a>
                             <button *ngIf="!lobby.isLocked && !lobby.isPrivate" (click)="joinGame(lobby)" class="btn btn-primary action-button" type="button">
                                 <img src="steam-icon.png" width="20" height="20" alt=""> Join
                             </button>
@@ -153,6 +156,7 @@
                             </ng-container>
                             <ng-template #chatOwnerText>{{ ownerDisplayName(chatLobby) }}</ng-template>
                         </div>
+                        <a class="small link-info text-decoration-none d-inline-block mt-1" href="/lobby/{{ chatLobby.id }}">Open waiting-room details</a>
                     </div>
                     <span class="count-pill small">{{ chatLobby.userCount }}</span>
                 </div>
