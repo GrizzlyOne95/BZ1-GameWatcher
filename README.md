@@ -1,6 +1,6 @@
 # BZ1 Game Watcher
 
-Live lobby list for **Battlezone 98 Redux**, running at [bz98gamewatcher.com](https://bz98gamewatcher.com).
+Live lobby list for **Battlezone 98 Redux**, running at https://bz1-gamewatcher.onrender.com/games
 
 The site shows the games currently open, who is in them, and lets you jump straight into a lobby
 through Steam.
@@ -142,3 +142,5 @@ with the commit SHA:
 
 The owner segment is derived from the repository owner at build time, so forks publish to their own
 namespace. Pull requests build and test without publishing.
+
+Thanks to JJ173 for initial creation of this project. 
