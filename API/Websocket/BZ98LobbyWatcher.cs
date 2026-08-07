@@ -2,6 +2,7 @@ using System.Threading.Channels;
 using BZAPI.Bot;
 using BZAPI.Configuration;
 using BZAPI.Models;
+using BZAPI.Protocol;
 using BZAPI.Steam;
 using BZAPI.Storage;
 using Microsoft.Extensions.Options;
@@ -16,8 +17,6 @@ namespace BZAPI.Websocket
     /// </summary>
     public sealed class BZ98LobbyWatcher : BackgroundService
     {
-        private const string ModNameSeparator = "~~";
-
         private readonly ILobbyStore _store;
         private readonly IChatStore _chat;
         private readonly ISteamAvatarProvider _avatars;
@@ -232,77 +231,39 @@ namespace BZAPI.Websocket
 
         private async Task PopulateLobbyAsync(BZ98Lobby lobby, CancellationToken cancellationToken)
         {
-            if (lobby.MetaData is not null)
-            {
-                // Preserve the protocol envelope before deriving a friendly name. The envelope is
-                // useful for diagnostics and carries the public password-marker bit, but never the
-                // actual password value.
-                lobby.MetaData.RawName = lobby.MetaData.Name;
-                lobby.MetaData.Name = StripModPrefix(lobby.MetaData.Name);
-
-                lobby.Stats ??= new BZ98LobbyData();
-                ApplyGameSettings(lobby.MetaData.GameSettings, lobby.Stats);
-            }
+            // Keep reverse-engineered protocol semantics in the pure parser so the live watcher and
+            // sanitized regression fixtures exercise the same production normalization path.
+            BZ98ProtocolParser.NormalizeLobby(lobby);
 
             if (lobby.Users is null || lobby.Users.Count == 0)
             {
                 return;
             }
 
-            var removedFromPublicRoster = 0;
+            // The owner snapshot above must happen before this filter. The observer is a real Web
+            // user upstream, but Game Watcher's own identity should not inflate public activity.
+            BZ98ProtocolParser.FilterPublicUsers(
+                lobby,
+                (key, user) =>
+                    _chat.IsObserverUser(lobby.Id, user.Id ?? key) ||
+                    (user.IPAddress is not null && _options.HiddenUserIpAddresses.Contains(user.IPAddress)));
 
-            foreach (var key in lobby.Users.Keys.ToList())
+            if (lobby.Users.Count == 0)
             {
-                if (!lobby.Users.TryGetValue(key, out var user) || user is null)
-                {
-                    lobby.Users.Remove(key);
-                    continue;
-                }
+                return;
+            }
 
-                // Capture the owner identity before any optional hidden-user filter is applied.
-                // LobbyResponse maps Host through UserResponse, which deliberately excludes
-                // IP/WAN/LAN fields.
-                if (user.Id is not null && user.Id == lobby.Owner)
-                {
-                    lobby.Host = user;
-                }
-
-                // Our read-only chat observer is a real Web user in the upstream lobby so it can
-                // receive chat events. Exclude only its exact server-issued ID from Game Watcher's
-                // public roster/count so it does not make an empty waiting room look active. This
-                // does not hide unrelated Web users or third-party bridge accounts such as !BRIDGE.
-                if (_chat.IsObserverUser(lobby.Id, user.Id ?? key))
-                {
-                    lobby.Users.Remove(key);
-                    removedFromPublicRoster++;
-                    continue;
-                }
-
-                if (user.IPAddress is not null && _options.HiddenUserIpAddresses.Contains(user.IPAddress))
-                {
-                    lobby.Users.Remove(key);
-                    removedFromPublicRoster++;
-                    continue;
-                }
-
-                // authType is the protocol's source of truth for platform. ID prefixes are used
-                // only for platform-specific enrichment (for example extracting a Steam64 ID),
-                // never to relabel a Web account as GOG.
-                user.AuthType = NormalizeAuthType(user.AuthType);
-                user.IsSteam = string.Equals(user.AuthType, "steam", StringComparison.OrdinalIgnoreCase);
-                user.IsGOG = string.Equals(user.AuthType, "gog", StringComparison.OrdinalIgnoreCase);
-
-                if (user.MetaData?.Ready is { Length: > 0 } ready)
-                {
-                    user.Stats ??= new BZ98LobbyData();
-                    ApplyGameSettings(ready, user.Stats);
-                }
-
-                if (!user.IsSteam)
+            foreach (var pair in lobby.Users)
+            {
+                var key = pair.Key;
+                var user = pair.Value;
+                if (user is null || !user.IsSteam)
                 {
                     continue;
                 }
 
+                // authType has already been normalized by BZ98ProtocolParser. Steam-ID-shaped
+                // identifiers are used only for Steam enrichment when authType actually is steam.
                 var steamKey = user.Id ?? key;
                 if (steamKey.Length > 1 && steamKey[0] == 'S' && ulong.TryParse(steamKey[1..], out var steamId))
                 {
@@ -317,102 +278,6 @@ namespace BZAPI.Websocket
                         steamKey);
                 }
             }
-
-            if (removedFromPublicRoster > 0)
-            {
-                lobby.UserCount = Math.Max(0, lobby.UserCount - removedFromPublicRoster);
-
-                if (lobby.MetaData is not null)
-                {
-                    lobby.MetaData.UserCount = lobby.UserCount.ToString();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Decode the 13-field Battlezone game-settings tuple documented by community tooling.
-        /// Missing or malformed fields remain null instead of being silently converted to false/0.
-        /// </summary>
-        private static void ApplyGameSettings(string? settings, BZ98LobbyData target)
-        {
-            if (string.IsNullOrWhiteSpace(settings))
-            {
-                return;
-            }
-
-            var parts = settings.Split('*', StringSplitOptions.None);
-
-            target.MetaDataVersion = ReadInt(parts, 0);
-            target.MapFile = ReadString(parts, 1) ?? target.MapFile;
-            target.CRC32 = ReadString(parts, 2) ?? target.CRC32;
-            target.Mod = ReadString(parts, 3) ?? target.Mod;
-            target.SyncJoin = ReadBool(parts, 4);
-            target.TimeLimit = ReadInt(parts, 7);
-            target.PlayerLimit = ReadInt(parts, 9);
-            target.KillLimit = ReadInt(parts, 11);
-
-            target.Attributes ??= new BZ98LobbyDataAttributes();
-            target.Attributes.Satellite = ReadBool(parts, 5);
-            target.Attributes.Barracks = ReadBool(parts, 6);
-            target.Attributes.Lives = ReadString(parts, 8) ?? target.Attributes.Lives;
-            target.Attributes.Sniper = ReadBool(parts, 10);
-            target.Attributes.Splinter = ReadBool(parts, 12);
-        }
-
-        private static string? ReadString(string[] parts, int index)
-        {
-            if (index >= parts.Length)
-            {
-                return null;
-            }
-
-            var value = parts[index].Trim();
-            return value.Length == 0 ? null : value;
-        }
-
-        private static int? ReadInt(string[] parts, int index)
-        {
-            var value = ReadString(parts, index);
-            return int.TryParse(value, out var parsed) ? parsed : null;
-        }
-
-        private static bool? ReadBool(string[] parts, int index)
-        {
-            var value = ReadString(parts, index);
-            return value switch
-            {
-                "0" => false,
-                "1" => true,
-                _ => null
-            };
-        }
-
-        private static string? NormalizeAuthType(string? authType)
-        {
-            var normalized = authType?.Trim();
-            if (string.IsNullOrEmpty(normalized))
-            {
-                return null;
-            }
-
-            return normalized.ToLowerInvariant();
-        }
-
-        /// <summary>
-        /// Lobby names arrive as "&lt;mod&gt;~~&lt;name&gt;"; this returns the part after the separator.
-        /// </summary>
-        private static string? StripModPrefix(string? name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                return name;
-            }
-
-            var separator = name.IndexOf(ModNameSeparator, StringComparison.Ordinal);
-
-            // This was previously an unguarded IndexOf(...) + 2, so a name with no separator had
-            // its first character sliced off (-1 + 2 == 1).
-            return separator < 0 ? name : name[(separator + ModNameSeparator.Length)..];
         }
 
         private static void SendAuthorization(IWebsocketClient client)
