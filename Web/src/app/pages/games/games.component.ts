@@ -2,13 +2,14 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faCirclePlay, faComputer, faLink, faLock, faLockOpen, faMessage, faPlayCircle, faUser } from '@fortawesome/free-solid-svg-icons';
-import { EMPTY, Subject, catchError, exhaustMap, takeUntil, timer } from 'rxjs';
+import { EMPTY, Subject, catchError, exhaustMap, takeUntil } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { StockVehicleDefinition, findStockVehicle } from '../../data/stock-vehicles';
 import { SiteNavComponent } from '../../components/site-nav/site-nav.component';
 import { BZ98ChatMessage, BZ98Lobby, BZ98LobbyData, BZ98LobbyView, BZ98User } from '../../models/bz98-lobby-info';
 import { BZ98Service } from '../../services/bz98.service';
 import { buildSteamJoinUrl } from '../../services/steam-join';
+import { visibilityAwareTimer } from '../../services/visibility-polling';
 
 /** Minimum fields needed to decode the original core portion of the '*' settings tuple. */
 const GAME_SETTINGS_MIN_FIELD_COUNT = 9;
@@ -81,9 +82,9 @@ export class GamesComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        // exhaustMap rather than a bare setInterval: if a refresh is slow, later ticks are skipped
-        // instead of stacking up more in-flight requests.
-        timer(0, environment.lobbyRefreshIntervalMs)
+        // Visible game lists stay close to real time. Background tabs back off to one request per
+        // minute and refresh immediately when the visitor returns.
+        visibilityAwareTimer(environment.lobbyRefreshIntervalMs, 60_000)
             .pipe(
                 exhaustMap(() => this.bz98Service.getBZ98Lobbies().pipe(
                     catchError((error: unknown) => {
