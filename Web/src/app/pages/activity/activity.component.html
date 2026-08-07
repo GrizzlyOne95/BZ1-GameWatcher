@@ -1,0 +1,146 @@
+<app-site-nav></app-site-nav>
+
+<div class="container-fluid activity-shell">
+    <div class="activity-heading d-flex flex-column flex-lg-row justify-content-between align-items-lg-end gap-3">
+        <div>
+            <div class="eyebrow">Multiplayer history</div>
+            <h1 class="display-5 mb-1">BZ98 Activity</h1>
+            <p class="text-secondary mb-0">
+                Privacy-safe aggregate activity from game lobbies and public waiting rooms. No player identities, chat text, or network addresses are stored here.
+            </p>
+        </div>
+
+        <div class="text-lg-end" *ngIf="activity">
+            <div class="freshness"><span class="live-dot"></span>Lobby data {{ formatAge(activity.lobbyDataUpdatedUtc) }}</div>
+            <div class="small text-secondary">Last history sample: {{ formatDateTime(activity.lastHistoricalSampleUtc) }}</div>
+        </div>
+    </div>
+
+    <div class="range-picker" role="group" aria-label="Activity history range">
+        <button *ngFor="let range of ranges"
+                type="button"
+                class="btn btn-sm"
+                [class.btn-primary]="selectedRange === range.value"
+                [class.btn-outline-light]="selectedRange !== range.value"
+                (click)="selectRange(range.value)">
+            {{ range.label }}
+        </button>
+    </div>
+
+    <div class="alert alert-warning" role="alert" *ngIf="loadFailed">
+        Activity history could not be refreshed. Existing data remains visible while the page retries.
+    </div>
+
+    <div class="alert alert-secondary history-note" role="status" *ngIf="activity && !activity.durableHistory">
+        <strong>History is currently process-local.</strong>
+        It can reset when the hosted service restarts or is redeployed. The API supports a durable persistence path when persistent storage is available.
+    </div>
+
+    <ng-container *ngIf="activity as data; else loadingState">
+        <section class="metric-grid" *ngIf="data.current as current; else noLiveSnapshot">
+            <article class="metric-card primary-metric">
+                <span>Players online</span>
+                <strong>{{ current.playersOnline }}</strong>
+                <small>Players currently reported in game lobbies</small>
+            </article>
+            <article class="metric-card">
+                <span>Active games</span>
+                <strong>{{ current.activeGames }}</strong>
+                <small>Non-chat game lobbies currently listed</small>
+            </article>
+            <article class="metric-card">
+                <span>In progress</span>
+                <strong>{{ current.gamesInProgress }}</strong>
+                <small>Game lobbies reporting launched state</small>
+            </article>
+            <article class="metric-card">
+                <span>Waiting room users</span>
+                <strong>{{ current.waitingRoomUsers }}</strong>
+                <small>Public chat-lobby users, excluding Game Watcher's observer</small>
+            </article>
+        </section>
+
+        <ng-template #noLiveSnapshot>
+            <div class="empty-state">Waiting for the first lobby-server snapshot.</div>
+        </ng-template>
+
+        <section class="summary-grid">
+            <article class="summary-card">
+                <span>Peak players</span>
+                <strong>{{ data.summary.peakPlayers }}</strong>
+                <small>Within the selected range</small>
+            </article>
+            <article class="summary-card">
+                <span>Average players</span>
+                <strong>{{ data.summary.averagePlayers | number:'1.0-1' }}</strong>
+                <small>Across recorded samples</small>
+            </article>
+            <article class="summary-card">
+                <span>Peak active games</span>
+                <strong>{{ data.summary.peakActiveGames }}</strong>
+                <small>Within the selected range</small>
+            </article>
+            <article class="summary-card">
+                <span>Samples</span>
+                <strong>{{ data.summary.historicalSampleCount }}</strong>
+                <small>Raw five-minute samples in range</small>
+            </article>
+        </section>
+
+        <section class="chart-card">
+            <div class="chart-heading d-flex flex-column flex-md-row justify-content-between gap-2">
+                <div>
+                    <div class="eyebrow">Trend</div>
+                    <h2>Players and active games</h2>
+                </div>
+                <div class="chart-legend">
+                    <span><i class="legend-swatch players"></i>Players</span>
+                    <span><i class="legend-swatch games"></i>Games</span>
+                </div>
+            </div>
+
+            <div class="chart-wrap" *ngIf="data.samples.length >= 2; else warmingUp">
+                <svg class="activity-chart"
+                     [attr.viewBox]="'0 0 ' + chartWidth + ' ' + chartHeight"
+                     role="img"
+                     [attr.aria-label]="'Activity chart for the last ' + selectedRange">
+                    <line class="chart-grid-line" [attr.x1]="chartPadding" [attr.y1]="chartPadding" [attr.x2]="chartWidth - chartPadding" [attr.y2]="chartPadding"></line>
+                    <line class="chart-grid-line" [attr.x1]="chartPadding" [attr.y1]="chartHeight / 2" [attr.x2]="chartWidth - chartPadding" [attr.y2]="chartHeight / 2"></line>
+                    <line class="chart-grid-line" [attr.x1]="chartPadding" [attr.y1]="chartHeight - chartPadding" [attr.x2]="chartWidth - chartPadding" [attr.y2]="chartHeight - chartPadding"></line>
+                    <polyline class="chart-line games-line" [attr.points]="gamePoints"></polyline>
+                    <polyline class="chart-line players-line" [attr.points]="playerPoints"></polyline>
+                </svg>
+                <div class="chart-axis-label top">{{ chartMaximum }}</div>
+                <div class="chart-axis-label bottom">0</div>
+                <div class="chart-time-labels">
+                    <span>{{ formatDateTime(data.samples[0].timeUtc) }}</span>
+                    <span>{{ formatDateTime(data.samples[data.samples.length - 1].timeUtc) }}</span>
+                </div>
+            </div>
+
+            <ng-template #warmingUp>
+                <div class="empty-state compact">
+                    Activity history is warming up. The chart appears after at least two aggregate samples have been recorded.
+                </div>
+            </ng-template>
+        </section>
+
+        <section class="coverage-card">
+            <div>
+                <span>History collection began</span>
+                <strong>{{ formatDateTime(data.historyStartedUtc) }}</strong>
+            </div>
+            <div>
+                <span>Requested range begins</span>
+                <strong>{{ formatDateTime(data.requestedSinceUtc) }}</strong>
+            </div>
+            <p class="mb-0 text-secondary">
+                Player counts use non-chat game participants, so persistent Web bridge accounts do not inflate the primary player-activity metric.
+            </p>
+        </section>
+    </ng-container>
+
+    <ng-template #loadingState>
+        <div class="empty-state">{{ loading ? 'Loading multiplayer activity…' : 'No activity data is available yet.' }}</div>
+    </ng-template>
+</div>

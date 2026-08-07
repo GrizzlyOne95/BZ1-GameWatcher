@@ -1,0 +1,277 @@
+:host {
+    display: block;
+}
+
+.activity-shell {
+    padding: 1.25rem clamp(0.75rem, 2vw, 2rem) 3rem;
+}
+
+.activity-heading {
+    margin-bottom: 1rem;
+}
+
+.activity-heading h1,
+.chart-heading h2 {
+    font-weight: 300;
+    letter-spacing: -0.03em;
+}
+
+.eyebrow {
+    margin-bottom: 0.25rem;
+    color: #9aa8b5;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.freshness {
+    color: #cbd5dd;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+.live-dot {
+    display: inline-block;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin-right: 0.4rem;
+    border-radius: 50%;
+    background: #31c86b;
+    box-shadow: 0 0 0 0.22rem rgba(49, 200, 107, 0.13);
+}
+
+.range-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.history-note {
+    border-color: #3b4650;
+    background: #252c32;
+}
+
+.metric-grid,
+.summary-grid {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metric-grid {
+    margin-bottom: 1rem;
+}
+
+.summary-grid {
+    margin-bottom: 1rem;
+}
+
+.metric-card,
+.summary-card,
+.chart-card,
+.coverage-card {
+    border: 1px solid #303941;
+    border-radius: 0.8rem;
+    background: #20262c;
+    box-shadow: 0 0.6rem 1.5rem rgba(0, 0, 0, 0.14);
+}
+
+.metric-card,
+.summary-card {
+    padding: 1rem;
+}
+
+.metric-card span,
+.summary-card span,
+.coverage-card span {
+    display: block;
+    color: #8f9ba6;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.metric-card strong {
+    display: block;
+    margin: 0.15rem 0;
+    color: #f4f7fa;
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+}
+
+.summary-card strong {
+    display: block;
+    margin: 0.1rem 0;
+    color: #eef3f7;
+    font-size: 1.55rem;
+}
+
+.metric-card small,
+.summary-card small {
+    color: #8f9aa5;
+}
+
+.primary-metric {
+    border-color: rgba(115, 75, 170, 0.8);
+    background: linear-gradient(145deg, rgba(101, 33, 139, 0.2), #20262c 62%);
+}
+
+.chart-card {
+    margin-bottom: 1rem;
+    padding: 1rem;
+}
+
+.chart-heading {
+    margin-bottom: 0.75rem;
+}
+
+.chart-heading h2 {
+    margin: 0;
+    font-size: 1.35rem;
+}
+
+.chart-legend {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    color: #aeb8c2;
+    font-size: 0.82rem;
+}
+
+.chart-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.legend-swatch {
+    display: inline-block;
+    width: 1.3rem;
+    height: 0.18rem;
+    border-radius: 999px;
+}
+
+.legend-swatch.players {
+    background: #b48cf0;
+}
+
+.legend-swatch.games {
+    background: #61b8e8;
+}
+
+.chart-wrap {
+    position: relative;
+    min-height: 240px;
+}
+
+.activity-chart {
+    display: block;
+    width: 100%;
+    min-height: 220px;
+    overflow: visible;
+    border: 1px solid #313941;
+    border-radius: 0.6rem;
+    background: #1a2025;
+}
+
+.chart-grid-line {
+    stroke: #313941;
+    stroke-width: 1;
+}
+
+.chart-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+    vector-effect: non-scaling-stroke;
+}
+
+.players-line {
+    stroke: #b48cf0;
+}
+
+.games-line {
+    stroke: #61b8e8;
+}
+
+.chart-axis-label {
+    position: absolute;
+    left: 0.35rem;
+    color: #77828c;
+    font-size: 0.7rem;
+    pointer-events: none;
+}
+
+.chart-axis-label.top {
+    top: 0.3rem;
+}
+
+.chart-axis-label.bottom {
+    bottom: 1.65rem;
+}
+
+.chart-time-labels {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.35rem;
+    color: #7f8a94;
+    font-size: 0.72rem;
+}
+
+.coverage-card {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+    padding: 1rem;
+}
+
+.coverage-card strong {
+    display: block;
+    margin-top: 0.2rem;
+    color: #dde5ec;
+}
+
+.coverage-card p {
+    grid-column: 1 / -1;
+}
+
+.empty-state {
+    padding: 2rem;
+    border: 1px dashed #39424b;
+    border-radius: 0.75rem;
+    color: #8f9aa5;
+    background: rgba(35, 41, 47, 0.35);
+}
+
+.empty-state.compact {
+    padding: 1rem;
+}
+
+@media (max-width: 991.98px) {
+    .metric-grid,
+    .summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 575.98px) {
+    .metric-grid,
+    .summary-grid,
+    .coverage-card {
+        grid-template-columns: 1fr;
+    }
+
+    .coverage-card p {
+        grid-column: auto;
+    }
+
+    .chart-time-labels {
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+}
