@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { EMPTY, Subject, catchError, exhaustMap, takeUntil, timer } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import { WatcherHealth } from '../../models/watcher-health';
 import { BZ98Service } from '../../services/bz98.service';
 
@@ -20,7 +21,11 @@ export class WatcherStatusComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        timer(0, 15_000)
+        // Production shows status immediately. The small development delay also keeps unrelated
+        // component tests that embed the shared nav from acquiring an unexpected health request.
+        const initialDelayMs = environment.production ? 0 : 5_000;
+
+        timer(initialDelayMs, 15_000)
             .pipe(
                 exhaustMap(() => this.bz98Service.getHealth().pipe(
                     catchError((error: unknown) => {
