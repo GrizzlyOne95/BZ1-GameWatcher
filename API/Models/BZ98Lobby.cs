@@ -1,3 +1,5 @@
+using Newtonsoft.Json;
+
 namespace BZAPI.Models
 {
     /// <summary>
@@ -41,7 +43,20 @@ namespace BZAPI.Models
         public string? GameSettings { get; set; }
         public string? GameType { get; set; }
         public string? Launched { get; set; }
+
+        [JsonProperty("gameended")]
+        public string? GameEnded { get; set; }
+
         public string? Name { get; set; }
+
+        /// <summary>
+        /// Original encoded lobby name before the watcher derives a display name. This retains the
+        /// public/private/password marker tuple for diagnostics without exposing the actual
+        /// password field from the upstream lobby object.
+        /// </summary>
+        [JsonIgnore]
+        public string? RawName { get; set; }
+
         public string? NextMid { get; set; }
         public string? UserCount { get; set; }
         public string? UserPack { get; set; }
@@ -58,16 +73,21 @@ namespace BZAPI.Models
         public string? MapFile { get; set; }
         public string? CRC32 { get; set; }
         public string? Mod { get; set; }
+        public int? MetaDataVersion { get; set; }
+        public bool? SyncJoin { get; set; }
+        public int? TimeLimit { get; set; }
+        public int? PlayerLimit { get; set; }
+        public int? KillLimit { get; set; }
         public BZ98LobbyDataAttributes? Attributes { get; set; }
     }
 
     public class BZ98LobbyDataAttributes
     {
         public string? Lives { get; set; }
-        public bool Satellite { get; set; }
-        public bool Barracks { get; set; }
-        public bool Sniper { get; set; }
-        public bool Splinter { get; set; }
+        public bool? Satellite { get; set; }
+        public bool? Barracks { get; set; }
+        public bool? Sniper { get; set; }
+        public bool? Splinter { get; set; }
     }
 
     public class BZ98User
@@ -119,5 +139,11 @@ namespace BZAPI.Models
         public string? Ready { get; set; }
         public string? Team { get; set; }
         public string? Vehicle { get; set; }
+
+        [JsonProperty("bzcp")]
+        public string? CommunityPatch { get; set; }
+
+        [JsonProperty("shim")]
+        public string? CommunityPatchShim { get; set; }
     }
 }

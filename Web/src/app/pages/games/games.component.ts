@@ -6,12 +6,12 @@ import { EMPTY, Subject, catchError, exhaustMap, takeUntil, timer } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { StockVehicleDefinition, findStockVehicle } from '../../data/stock-vehicles';
 import { SiteNavComponent } from '../../components/site-nav/site-nav.component';
-import { BZ98Lobby, BZ98LobbyData, BZ98LobbyView, BZ98User } from '../../models/bz98-lobby-info';
+import { BZ98ChatMessage, BZ98Lobby, BZ98LobbyData, BZ98LobbyView, BZ98User } from '../../models/bz98-lobby-info';
 import { BZ98Service } from '../../services/bz98.service';
 import { buildSteamJoinUrl } from '../../services/steam-join';
 
-/** Number of '*'-separated fields a game settings string must have to be parsable. */
-const GAME_SETTINGS_FIELD_COUNT = 9;
+/** Minimum fields needed to decode the original core portion of the '*' settings tuple. */
+const GAME_SETTINGS_MIN_FIELD_COUNT = 9;
 const TIME_ZONE_STORAGE_KEY = 'bz98-display-time-zone';
 const FALLBACK_TIME_ZONES = [
     'Pacific/Honolulu',
@@ -170,7 +170,7 @@ export class GamesComponent implements OnInit, OnDestroy {
         }
 
         // The API's host snapshot is the most useful fallback when a lobby's public user list is
-        // empty, which is common for the persistent chat/bridge lobbies.
+        // empty, which is common for persistent chat/bridge lobbies.
         return lobby.host ?? null;
     }
 
@@ -200,6 +200,10 @@ export class GamesComponent implements OnInit, OnDestroy {
 
     trackUser(index: number, user: BZ98User): string | number {
         return user.id || user.steamCleanId || user.name || index;
+    }
+
+    trackChat(index: number, message: BZ98ChatMessage): string {
+        return `${message.timeUtc}|${message.speakerId ?? message.author ?? ''}|${index}`;
     }
 
     display(value: string | number | null | undefined): string {
@@ -249,6 +253,10 @@ export class GamesComponent implements OnInit, OnDestroy {
     }
 
     yesNo(value: boolean | null | undefined): string {
+        if (value === null || value === undefined) {
+            return 'Not reported';
+        }
+
         return value ? 'Yes' : 'No';
     }
 
@@ -264,7 +272,19 @@ export class GamesComponent implements OnInit, OnDestroy {
     }
 
     launchStatus(lobby: BZ98LobbyView): string {
-        return lobby.metaData?.launched === '1' ? 'In progress' : 'In lobby';
+        if (lobby.metaData?.gameEnded === '1') {
+            return 'Ended';
+        }
+
+        if (lobby.metaData?.launched === '1') {
+            return 'In progress';
+        }
+
+        if (lobby.metaData?.launched === '0') {
+            return 'In lobby';
+        }
+
+        return 'Not reported';
     }
 
     lobbyDisplayName(lobby: BZ98LobbyView): string {
@@ -282,20 +302,36 @@ export class GamesComponent implements OnInit, OnDestroy {
         return Boolean(user.id && (user.id === lobby.owner || user.id === lobby.host?.id));
     }
 
+    /** The upstream authType field is authoritative; ID prefixes are only enrichment hints. */
     userPlatform(user: BZ98User): string {
-        if (user.isSteam) {
-            return 'Steam';
+        switch (user.authType?.trim().toLowerCase()) {
+            case 'steam':
+                return 'Steam';
+            case 'gog':
+                return 'GOG';
+            case 'web':
+                return 'Web';
+            default:
+                return this.display(user.authType);
+        }
+    }
+
+    chatAuthor(lobby: BZ98LobbyView, message: BZ98ChatMessage): string {
+        const reported = message.author?.trim();
+        if (reported) {
+            return reported;
         }
 
-        if (user.isGOG) {
-            return 'GOG';
+        if (message.speakerId) {
+            const user = lobby.users.find(candidate => candidate.id === message.speakerId);
+            if (user?.name?.trim()) {
+                return user.name.trim();
+            }
+
+            return message.speakerId;
         }
 
-        if (user.isBB) {
-            return 'Battlezone';
-        }
-
-        return this.display(user.authType);
+        return 'Unknown';
     }
 
     private applyLobbies(lobbies: BZ98Lobby[]): void {
@@ -334,6 +370,7 @@ export class GamesComponent implements OnInit, OnDestroy {
 
         return {
             ...lobby,
+            recentChat: Array.isArray(lobby.recentChat) ? lobby.recentChat : [],
             users,
             oddTeamUsers,
             evenTeamUsers,
@@ -345,8 +382,8 @@ export class GamesComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Game settings arrive as a '*'-separated string. Returns null when the string is missing or
-     * too short rather than producing an object full of undefined fields.
+     * Decode the public 13-field BZ98 game-settings tuple. Older/partial tuples still expose the
+     * fields they contain; omitted values stay null rather than becoming false or zero.
      */
     private parseGameSettings(settings: string | null | undefined): BZ98LobbyData | null {
         if (!settings) {
@@ -355,22 +392,53 @@ export class GamesComponent implements OnInit, OnDestroy {
 
         const parts = settings.split('*');
 
-        if (parts.length < GAME_SETTINGS_FIELD_COUNT) {
+        if (parts.length < GAME_SETTINGS_MIN_FIELD_COUNT) {
             return null;
         }
 
         return {
-            mapFile: parts[1],
-            crc32: parts[2],
-            mod: parts[3],
+            mapFile: this.part(parts, 1),
+            crc32: this.part(parts, 2),
+            mod: this.part(parts, 3),
+            metaDataVersion: this.integerPart(parts, 0),
+            syncJoin: this.booleanPart(parts, 4),
+            timeLimit: this.integerPart(parts, 7),
+            playerLimit: this.integerPart(parts, 9),
+            killLimit: this.integerPart(parts, 11),
             attributes: {
-                lives: parts[8],
-                satellite: Boolean(Number(parts[4])),
-                barracks: Boolean(Number(parts[5])),
-                sniper: Boolean(Number(parts[6])),
-                splinter: Boolean(Number(parts[7]))
+                lives: this.part(parts, 8),
+                satellite: this.booleanPart(parts, 5),
+                barracks: this.booleanPart(parts, 6),
+                sniper: this.booleanPart(parts, 10),
+                splinter: this.booleanPart(parts, 12)
             }
         };
+    }
+
+    private part(parts: string[], index: number): string | null {
+        const value = parts[index]?.trim();
+        return value ? value : null;
+    }
+
+    private integerPart(parts: string[], index: number): number | null {
+        const value = this.part(parts, index);
+        if (value === null) {
+            return null;
+        }
+
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    private booleanPart(parts: string[], index: number): boolean | null {
+        switch (this.part(parts, index)) {
+            case '0':
+                return false;
+            case '1':
+                return true;
+            default:
+                return null;
+        }
     }
 
     private getSupportedTimeZones(): string[] {

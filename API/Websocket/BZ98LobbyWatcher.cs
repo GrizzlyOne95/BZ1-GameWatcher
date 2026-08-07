@@ -224,7 +224,14 @@ namespace BZAPI.Websocket
         {
             if (lobby.MetaData is not null)
             {
+                // Preserve the protocol envelope before deriving a friendly name. The envelope is
+                // useful for diagnostics and carries the public password-marker bit, but never the
+                // actual password value.
+                lobby.MetaData.RawName = lobby.MetaData.Name;
                 lobby.MetaData.Name = StripModPrefix(lobby.MetaData.Name);
+
+                lobby.Stats ??= new BZ98LobbyData();
+                ApplyGameSettings(lobby.MetaData.GameSettings, lobby.Stats);
             }
 
             if (lobby.Users is null || lobby.Users.Count == 0)
@@ -240,39 +247,121 @@ namespace BZAPI.Websocket
                     continue;
                 }
 
-                // Capture the owner identity before filtering hidden service accounts out of the
-                // public member list. Persistent chat/bridge lobbies are commonly owned by one of
-                // these accounts; dropping it first left the UI with only an opaque ID such as
-                // B1000002. LobbyResponse maps Host through UserResponse, which omits IP/WAN/LAN
-                // fields, so retaining this owner snapshot does not expose the hidden address.
+                // Capture the owner identity before any optional hidden-user filter is applied.
+                // LobbyResponse maps Host through UserResponse, which deliberately excludes
+                // IP/WAN/LAN fields.
                 if (user.Id is not null && user.Id == lobby.Owner)
                 {
                     lobby.Host = user;
                 }
 
-                // Service accounts sit in the lounge permanently; hide them from the public list.
                 if (user.IPAddress is not null && _options.HiddenUserIpAddresses.Contains(user.IPAddress))
                 {
                     lobby.Users.Remove(key);
                     continue;
                 }
 
-                if (key.Length == 0 || key[0] != 'S')
+                // authType is the protocol's source of truth for platform. ID prefixes are used
+                // only for platform-specific enrichment (for example extracting a Steam64 ID),
+                // never to relabel a Web account as GOG.
+                user.AuthType = NormalizeAuthType(user.AuthType);
+                user.IsSteam = string.Equals(user.AuthType, "steam", StringComparison.OrdinalIgnoreCase);
+                user.IsGOG = string.Equals(user.AuthType, "gog", StringComparison.OrdinalIgnoreCase);
+
+                if (user.MetaData?.Ready is { Length: > 0 } ready)
                 {
-                    user.IsGOG = true;
+                    user.Stats ??= new BZ98LobbyData();
+                    ApplyGameSettings(ready, user.Stats);
                 }
-                else if (ulong.TryParse(key[1..], out var steamId))
+
+                if (!user.IsSteam)
                 {
-                    user.IsSteam = true;
-                    user.SteamCleanId = key[1..];
+                    continue;
+                }
+
+                var steamKey = user.Id ?? key;
+                if (steamKey.Length > 1 && steamKey[0] == 'S' && ulong.TryParse(steamKey[1..], out var steamId))
+                {
+                    user.SteamCleanId = steamKey[1..];
                     user.IsDangerous = _options.FlaggedSteamIds.Contains(steamId);
                     user.SteamImgUri = await _avatars.GetAvatarUrlAsync(steamId, cancellationToken);
                 }
                 else
                 {
-                    _logger.LogDebug("Ignoring user key {UserKey}: not a parsable Steam ID.", key);
+                    _logger.LogDebug(
+                        "Steam-authenticated user {UserKey} did not contain a parsable Steam ID.",
+                        steamKey);
                 }
             }
+        }
+
+        /// <summary>
+        /// Decode the 13-field Battlezone game-settings tuple documented by community tooling.
+        /// Missing or malformed fields remain null instead of being silently converted to false/0.
+        /// </summary>
+        private static void ApplyGameSettings(string? settings, BZ98LobbyData target)
+        {
+            if (string.IsNullOrWhiteSpace(settings))
+            {
+                return;
+            }
+
+            var parts = settings.Split('*', StringSplitOptions.None);
+
+            target.MetaDataVersion = ReadInt(parts, 0);
+            target.MapFile = ReadString(parts, 1) ?? target.MapFile;
+            target.CRC32 = ReadString(parts, 2) ?? target.CRC32;
+            target.Mod = ReadString(parts, 3) ?? target.Mod;
+            target.SyncJoin = ReadBool(parts, 4);
+            target.TimeLimit = ReadInt(parts, 7);
+            target.PlayerLimit = ReadInt(parts, 9);
+            target.KillLimit = ReadInt(parts, 11);
+
+            target.Attributes ??= new BZ98LobbyDataAttributes();
+            target.Attributes.Satellite = ReadBool(parts, 5);
+            target.Attributes.Barracks = ReadBool(parts, 6);
+            target.Attributes.Lives = ReadString(parts, 8) ?? target.Attributes.Lives;
+            target.Attributes.Sniper = ReadBool(parts, 10);
+            target.Attributes.Splinter = ReadBool(parts, 12);
+        }
+
+        private static string? ReadString(string[] parts, int index)
+        {
+            if (index >= parts.Length)
+            {
+                return null;
+            }
+
+            var value = parts[index].Trim();
+            return value.Length == 0 ? null : value;
+        }
+
+        private static int? ReadInt(string[] parts, int index)
+        {
+            var value = ReadString(parts, index);
+            return int.TryParse(value, out var parsed) ? parsed : null;
+        }
+
+        private static bool? ReadBool(string[] parts, int index)
+        {
+            var value = ReadString(parts, index);
+            return value switch
+            {
+                "0" => false,
+                "1" => true,
+                _ => null
+            };
+        }
+
+        private static string? NormalizeAuthType(string? authType)
+        {
+            var normalized = authType?.Trim();
+            if (string.IsNullOrEmpty(normalized))
+            {
+                return null;
+            }
+
+            return normalized.ToLowerInvariant();
         }
 
         /// <summary>
