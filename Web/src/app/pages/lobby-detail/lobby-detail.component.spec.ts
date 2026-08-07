@@ -95,6 +95,22 @@ function lobby(overrides: Partial<BZ98Lobby> = {}): BZ98Lobby {
             updatedUtc: '2026-08-01T12:00:00Z',
             subscriptions: 1234
         },
+        map: {
+            mapFile: 'bunker.bzn',
+            modId: '2299335165',
+            isStock: false,
+            title: 'Bunker Hill',
+            imageUrl: 'https://example.test/map-preview.jpg',
+            description: 'A strategy battlefield from the public BZ98R map catalog.',
+            minPlayers: 2,
+            maxPlayers: 8,
+            typeCode: 'S',
+            typeLabel: 'Strategy',
+            modeCode: 'S',
+            modeLabel: 'Strategy',
+            customTypeCode: null,
+            customTypeName: null
+        },
         owner: host.id,
         userCount: 2,
         users: {
@@ -143,13 +159,15 @@ describe('LobbyDetailComponent', () => {
         httpMock.verify();
     }
 
-    it('renders a stable lobby detail view with owner, rules, players, platform mix, and Workshop metadata', fakeAsync(() => {
+    it('renders owner, rules, platforms, Workshop metadata, and recognized map metadata', fakeAsync(() => {
         start();
         httpMock.expectOne(LOBBY_URL).flush(lobby());
         fixture.detectChanges();
 
         const text = fixture.nativeElement.textContent as string;
-        const preview = fixture.nativeElement.querySelector('img[alt="Community Map Pack Workshop preview"]') as HTMLImageElement | null;
+        const workshopPreview = fixture.nativeElement.querySelector('img[alt="Community Map Pack Workshop preview"]') as HTMLImageElement | null;
+        const mapPreview = fixture.nativeElement.querySelector('img[alt="Bunker Hill map preview"]') as HTMLImageElement | null;
+        expect(text).toContain('Bunker Hill');
         expect(text).toContain('bunker.bzn');
         expect(text).toContain('HostPilot');
         expect(text).toContain('Strategy');
@@ -157,22 +175,67 @@ describe('LobbyDetailComponent', () => {
         expect(text).toContain('Web 1');
         expect(text).toContain('Community Map Pack');
         expect(text).toContain('Workshop 2299335165');
+        expect(text).toContain('Players 2–8');
         expect(text).toContain('1234');
         expect(text).toContain('Join game');
-        expect(preview?.src).toContain('workshop-preview.jpg');
+        expect(workshopPreview?.src).toContain('workshop-preview.jpg');
+        expect(mapPreview?.src).toContain('map-preview.jpg');
         expect(fixture.componentInstance.ownerDisplayName(fixture.componentInstance.lobby!)).toBe('HostPilot');
+        expect(fixture.componentInstance.gameTypeLabel('1')).toBe('Valid');
 
         teardown();
     }));
 
-    it('falls back to the raw Workshop link when Steam enrichment is unavailable', fakeAsync(() => {
+    it('recognizes stock map metadata without inventing a Workshop source', fakeAsync(() => {
+        const stock = lobby({
+            workshop: null,
+            stats: {
+                mapFile: 'crater.bzn',
+                crc32: 'STOCK',
+                mod: '0',
+                attributes: null
+            },
+            map: {
+                mapFile: 'crater.bzn',
+                modId: '0',
+                isStock: true,
+                title: 'The Crater',
+                imageUrl: null,
+                description: null,
+                minPlayers: 2,
+                maxPlayers: 6,
+                typeCode: 'D',
+                typeLabel: 'Deathmatch',
+                modeCode: 'D',
+                modeLabel: 'Deathmatch',
+                customTypeCode: null,
+                customTypeName: null
+            }
+        });
+
         start();
-        httpMock.expectOne(LOBBY_URL).flush(lobby({ workshop: null }));
+        httpMock.expectOne(LOBBY_URL).flush(stock);
+        fixture.detectChanges();
+
+        expect(fixture.componentInstance.mapSourceLabel(stock)).toBe('Stock map');
+        expect(fixture.nativeElement.textContent).toContain('The Crater');
+        expect(fixture.nativeElement.textContent).toContain('Stock map');
+        expect(fixture.nativeElement.textContent).toContain('Deathmatch');
+
+        teardown();
+    }));
+
+    it('falls back to raw map/mod data when optional enrichment is unavailable', fakeAsync(() => {
+        start();
+        httpMock.expectOne(LOBBY_URL).flush(lobby({ workshop: null, map: null }));
         fixture.detectChanges();
 
         const text = fixture.nativeElement.textContent as string;
+        expect(text).toContain('bunker.bzn');
+        expect(text).toContain('Mode not resolved');
         expect(text).toContain('2299335165');
         expect(text).toContain('Open Workshop item');
+        expect(text).toContain('No external map metadata was resolved');
         expect(text).not.toContain('Community Map Pack');
 
         teardown();
