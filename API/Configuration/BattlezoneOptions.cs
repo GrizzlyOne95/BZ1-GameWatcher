@@ -20,6 +20,11 @@ namespace BZAPI.Configuration
         public TimeSpan? StaleConnectionTimeout { get; set; } = TimeSpan.FromMinutes(5);
 
         /// <summary>
+        /// How long to wait before reconnecting after a connection error.
+        /// </summary>
+        public TimeSpan ErrorReconnectTimeout { get; set; } = TimeSpan.FromSeconds(10);
+
+        /// <summary>
         /// Optional addresses whose users should be omitted from the visible lobby member list.
         /// Empty by default: third-party bridge/service accounts are treated like any other user.
         /// Network addresses themselves are still excluded from the public API response model.
