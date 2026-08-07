@@ -73,24 +73,37 @@ public sealed class SteamWorkshopProvider : ISteamWorkshopProvider
 
         try
         {
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            if (_options.WorkshopRequestTimeout > TimeSpan.Zero)
+            {
+                timeout.CancelAfter(_options.WorkshopRequestTimeout);
+            }
+
             using var form = new FormUrlEncodedContent(new Dictionary<string, string>
             {
                 ["itemcount"] = "1",
                 ["publishedfileids[0]"] = publishedFileId.ToString(CultureInfo.InvariantCulture)
             });
 
-            using var response = await _httpClient.PostAsync(Endpoint, form, cancellationToken);
+            using var response = await _httpClient.PostAsync(Endpoint, form, timeout.Token);
             response.EnsureSuccessStatusCode();
 
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
-            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken);
+            await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
+            using var document = await JsonDocument.ParseAsync(stream, cancellationToken: timeout.Token);
             item = Parse(document.RootElement, publishedFileId);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
             throw;
         }
-        catch (Exception ex) when (ex is HttpRequestException or JsonException or TaskCanceledException)
+        catch (OperationCanceledException)
+        {
+            _logger.LogWarning(
+                "Workshop lookup for {PublishedFileId} exceeded the configured timeout of {Timeout}.",
+                publishedFileId,
+                _options.WorkshopRequestTimeout);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or JsonException)
         {
             _logger.LogWarning(ex, "Failed to fetch Workshop item {PublishedFileId}.", publishedFileId);
         }
