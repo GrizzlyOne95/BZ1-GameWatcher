@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ActivityRange, ActivityResponse } from '../models/activity';
 import { BZ98Lobby } from '../models/bz98-lobby-info';
+import { WatcherHealth } from '../models/watcher-health';
 
 @Injectable({
     providedIn: 'root'
@@ -20,5 +21,9 @@ export class BZ98Service {
         return this.httpClient.get<ActivityResponse>(`${environment.apiUrl}activity`, {
             params: { range }
         });
+    }
+
+    getHealth(): Observable<WatcherHealth> {
+        return this.httpClient.get<WatcherHealth>(`${environment.apiUrl}health`);
     }
 }
