@@ -6,9 +6,13 @@ namespace BZAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class BZ98LobbyController(ILobbyStore lobbyStore, ILogger<BZ98LobbyController> logger) : ControllerBase
+    public class BZ98LobbyController(
+        ILobbyStore lobbyStore,
+        IChatStore chatStore,
+        ILogger<BZ98LobbyController> logger) : ControllerBase
     {
         private readonly ILobbyStore _lobbyStore = lobbyStore;
+        private readonly IChatStore _chatStore = chatStore;
         private readonly ILogger<BZ98LobbyController> _logger = logger;
 
         /// <summary>
@@ -27,7 +31,9 @@ namespace BZAPI.Controllers
                 snapshot.Lobbies.Count,
                 snapshot.LastUpdatedUtc);
 
-            return Ok(snapshot.Lobbies.Select(lobby => lobby.ToResponse()).ToList());
+            return Ok(snapshot.Lobbies
+                .Select(lobby => lobby.ToResponse(_chatStore.GetRecent(lobby.Id)))
+                .ToList());
         }
     }
 }
