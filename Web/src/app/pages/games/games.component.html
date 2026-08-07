@@ -157,6 +157,23 @@
                     <span class="count-pill small">{{ chatLobby.userCount }}</span>
                 </div>
 
+                <div class="waiting-activity" *ngIf="chatLobby.recentChat.length > 0; else noObservedChat">
+                    <span class="waiting-activity-dot" aria-hidden="true"></span>
+                    <span>
+                        Last chat
+                        <time [attr.datetime]="chatLobby.recentChat[chatLobby.recentChat.length - 1].timeUtc"
+                              [title]="formatDateTime(chatLobby.recentChat[chatLobby.recentChat.length - 1].timeUtc)">
+                            {{ formatTime(chatLobby.recentChat[chatLobby.recentChat.length - 1].timeUtc) }}
+                        </time>
+                    </span>
+                </div>
+                <ng-template #noObservedChat>
+                    <div class="waiting-activity quiet">
+                        <span class="waiting-activity-dot" aria-hidden="true"></span>
+                        <span>No chat observed yet</span>
+                    </div>
+                </ng-template>
+
                 <div class="waiting-users" *ngIf="chatLobby.users.length > 0; else noVisibleUsers">
                     <ng-container *ngFor="let user of chatLobby.users; trackBy: trackUser">
                         <ng-container *ngTemplateOutlet="playerCard; context: {$implicit: user, lobby: chatLobby}"></ng-container>
@@ -172,14 +189,16 @@
                             <h4>Recent chat</h4>
                             <span>Read-only activity view</span>
                         </div>
-                        <span class="mini-badge">{{ chatLobby.recentChat.length }}</span>
+                        <span class="mini-badge">
+                            {{ chatLobby.recentChat.length > 5 ? 'Latest 5 of ' + chatLobby.recentChat.length : chatLobby.recentChat.length + ' observed' }}
+                        </span>
                     </div>
 
                     <div class="chat-lines" *ngIf="chatLobby.recentChat.length > 0; else noRecentChat">
-                        <div class="chat-line" *ngFor="let message of chatLobby.recentChat; index as messageIndex; trackBy: trackChat">
+                        <div class="chat-line" *ngFor="let message of chatLobby.recentChat | slice:-5; index as messageIndex; trackBy: trackChat">
                             <div class="chat-line-heading">
                                 <strong>{{ chatAuthor(chatLobby, message) }}</strong>
-                                <time [attr.datetime]="message.timeUtc">{{ formatTime(message.timeUtc) }}</time>
+                                <time [attr.datetime]="message.timeUtc" [title]="formatDateTime(message.timeUtc)">{{ formatTime(message.timeUtc) }}</time>
                             </div>
                             <div class="chat-line-text">{{ message.text }}</div>
                         </div>
@@ -187,6 +206,19 @@
                     <ng-template #noRecentChat>
                         <p class="text-secondary small mb-0">No chat has been observed since the watcher joined this lobby.</p>
                     </ng-template>
+
+                    <details class="chat-history-details" *ngIf="chatLobby.recentChat.length > 5">
+                        <summary>Show {{ chatLobby.recentChat.length - 5 }} older retained messages</summary>
+                        <div class="chat-lines chat-lines-older">
+                            <div class="chat-line" *ngFor="let message of chatLobby.recentChat | slice:0:(chatLobby.recentChat.length - 5); index as messageIndex; trackBy: trackChat">
+                                <div class="chat-line-heading">
+                                    <strong>{{ chatAuthor(chatLobby, message) }}</strong>
+                                    <time [attr.datetime]="message.timeUtc" [title]="formatDateTime(message.timeUtc)">{{ formatTime(message.timeUtc) }}</time>
+                                </div>
+                                <div class="chat-line-text">{{ message.text }}</div>
+                            </div>
+                        </div>
+                    </details>
 
                     <p class="chat-readonly-note mb-0">Game Watcher only listens to public lobby chat. Web visitors cannot send messages into Battlezone.</p>
                 </section>
