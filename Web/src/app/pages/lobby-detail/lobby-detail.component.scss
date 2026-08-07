@@ -87,7 +87,8 @@
 }
 
 .status-pill,
-.count-badge {
+.count-badge,
+.map-chip {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -193,11 +194,84 @@
 
 .count-badge {
     min-width: 2rem;
-    height: 2rem;
-    padding: 0 0.6rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.65rem;
     color: #dce5ec;
+    font-size: 0.78rem;
     font-weight: 700;
+    text-align: center;
     background: #303a43;
+}
+
+.map-showcase {
+    display: grid;
+    grid-template-columns: minmax(220px, 0.85fr) minmax(0, 1.4fr);
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding: 0.8rem;
+    border: 1px solid #34404a;
+    border-radius: 0.65rem;
+    background: #252d34;
+}
+
+.map-preview {
+    display: block;
+    min-height: 180px;
+    overflow: hidden;
+    border: 1px solid #3d4953;
+    border-radius: 0.55rem;
+    background: #171c20;
+}
+
+.map-preview img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-height: 320px;
+    min-height: 180px;
+    object-fit: cover;
+}
+
+.map-copy {
+    min-width: 0;
+    align-self: center;
+}
+
+.map-copy h3 {
+    margin: 0.55rem 0 0.2rem;
+    color: #edf2f5;
+    font-size: clamp(1.25rem, 2.5vw, 1.8rem);
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.map-copy p {
+    margin: 0.85rem 0 0;
+    color: #b2bec8;
+    line-height: 1.55;
+    white-space: pre-line;
+}
+
+.map-file {
+    color: #85939f;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+}
+
+.map-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.map-chip {
+    min-height: 1.65rem;
+    padding: 0.2rem 0.55rem;
+    color: #cbd7e0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    background: #35414b;
 }
 
 .rule-grid,
@@ -399,11 +473,21 @@
 }
 
 @media (max-width: 767.98px) {
+    .map-showcase,
     .player-grid,
     .summary-grid,
     .rule-grid,
     .technical-grid {
         grid-template-columns: 1fr;
+    }
+
+    .map-preview {
+        min-height: 0;
+    }
+
+    .map-preview img {
+        min-height: 0;
+        max-height: 260px;
     }
 
     .technical-grid .wide {
