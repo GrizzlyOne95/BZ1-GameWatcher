@@ -15,6 +15,7 @@ export interface BZ98Lobby {
     memberLimit: number;
     metaData: BZ98MetaData | null;
     stats: BZ98LobbyData | null;
+    workshop?: BZ98WorkshopItem | null;
     owner: string | null;
     userCount: number;
     users: Record<string, BZ98User>;
@@ -38,6 +39,17 @@ export interface BZ98LobbyView extends Omit<BZ98Lobby, 'users' | 'stats' | 'rece
 
     /** Parsed settings when available, otherwise the API's reported stats. */
     stats: BZ98LobbyData | null;
+}
+
+export interface BZ98WorkshopItem {
+    publishedFileId: string;
+    title: string;
+    previewUrl: string | null;
+    creatorSteamId: string | null;
+    creatorProfileUrl: string | null;
+    workshopUrl: string;
+    updatedUtc: string | null;
+    subscriptions: number | null;
 }
 
 export interface BZ98ChatMessage {
