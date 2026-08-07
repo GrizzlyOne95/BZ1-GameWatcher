@@ -1,0 +1,45 @@
+# Optional paid Render Blueprint example for durable activity history.
+#
+# This file is NOT used automatically. The repository's active render.yaml intentionally remains on
+# the free plan. Point a Render Blueprint at this file only when you explicitly want to upgrade the
+# web service and attach a paid persistent disk.
+services:
+  - type: web
+    name: bz1-gamewatcher
+    runtime: docker
+    plan: starter
+    region: ohio
+    dockerfilePath: ./Dockerfile.render
+    autoDeployTrigger: checksPass
+    healthCheckPath: /api/health
+    disk:
+      name: activity-history
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Steam__ApiKey
+        sync: false
+      - key: Activity__PersistencePath
+        value: /var/data/activity-history.json
+      - key: Activity__PersistenceIsDurable
+        value: "true"
+      - key: LobbyBot__Enabled
+        value: "false"
+      - key: LobbyBot__PlayerName
+        value: BZ1 Game Watcher
+      - key: LobbyBot__LobbyName
+        value: ""
+      - key: LobbyBot__AutoClaim
+        value: "false"
+      - key: LobbyBot__MemberLimit
+        value: "8"
+      - key: LobbyBot__WelcomeMessage
+        value: ""
+      - key: LobbyBot__WelcomeCooldown
+        value: "00:01:00"
+      - key: LobbyBot__AnnouncementMessage
+        value: ""
+      - key: LobbyBot__AnnouncementInterval
+        value: "00:05:00"
