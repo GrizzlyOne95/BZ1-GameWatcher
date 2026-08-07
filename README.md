@@ -1,10 +1,11 @@
 # BZ1 Game Watcher
 
-Live lobby list for **Battlezone 98 Redux**, running at https://bz1-gamewatcher.onrender.com/games
+Live lobby list for **Battlezone 98 Redux**, running at https://bz98gamewatcher.com/
 
 The site shows the games currently open, who is in them, recent read-only public waiting-room chat,
 privacy-safe multiplayer activity history, recognized map information, and lets you jump straight
-into a lobby through Steam.
+into a lobby through Steam. The production web client is also installable as a lightweight PWA on
+supported desktop and mobile browsers.
 
 <img width="3733" height="1919" alt="image" src="https://github.com/user-attachments/assets/fd3db1cd-2f7f-474f-92a4-eeeade5bb9ee" />
 
@@ -23,6 +24,9 @@ Rebellion lobby server ──WebSocket──▶ API (ASP.NET Core 10) ──REST
   activity, and serves the public API.
 - **Web** (`Web/`) polls the API every few seconds and renders game, waiting-room, lobby-detail,
   unit, and activity views.
+- **PWA shell** (`Web/public/sw.js`) makes the production UI installable and gives the application
+  shell a limited offline fallback. It deliberately bypasses `/api/`, so live lobby, chat, health,
+  and activity responses are never served from service-worker Cache Storage.
 - **Render image** (`Dockerfile.render`) builds both projects and serves Angular from the ASP.NET
   application's `wwwroot`, keeping the UI and API on one origin.
 - **Optional lobby bot** can join or recreate a configured chat lobby, greet players, and send timed
@@ -30,7 +34,8 @@ Rebellion lobby server ──WebSocket──▶ API (ASP.NET Core 10) ──REST
 - The original split-container nginx deployment remains available through Docker Compose.
 
 Because the watcher is a continuously running background service, a static-only host cannot run the
-complete application.
+complete application. Installing the PWA does not change that: offline mode provides the cached app
+shell only, while multiplayer data still requires the live API.
 
 ## Requirements
 
@@ -99,7 +104,8 @@ npm start
 ```
 
 The development web server calls `/api/` on its own origin, so use its proxy configuration or run
-the full stack under Docker Compose.
+the full stack under Docker Compose. The service worker is registered only in production builds so
+local development cannot accidentally become pinned behind a stale PWA cache.
 
 ## Tests
 
