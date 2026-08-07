@@ -1,0 +1,37 @@
+{
+  "name": "Battlezone 98 Redux Game Watcher",
+  "short_name": "BZ98 Watcher",
+  "description": "Live Battlezone 98 Redux lobbies, activity, maps, units, and read-only waiting-room chat.",
+  "id": "/games",
+  "start_url": "/games",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#171b1f",
+  "theme_color": "#20262c",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Current lobbies",
+      "short_name": "Lobbies",
+      "url": "/games"
+    },
+    {
+      "name": "Multiplayer activity",
+      "short_name": "Activity",
+      "url": "/activity"
+    },
+    {
+      "name": "Unit database",
+      "short_name": "Units",
+      "url": "/units"
+    }
+  ]
+}
