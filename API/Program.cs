@@ -1,3 +1,4 @@
+using BZAPI.Activity;
 using BZAPI.Bot;
 using BZAPI.Configuration;
 using BZAPI.Steam;
@@ -13,6 +14,7 @@ builder.Services.Configure<BattlezoneOptions>(builder.Configuration.GetSection(B
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection(SteamOptions.SectionName));
 builder.Services.Configure<LobbyBotOptions>(builder.Configuration.GetSection(LobbyBotOptions.SectionName));
 builder.Services.Configure<ChatObserverOptions>(builder.Configuration.GetSection(ChatObserverOptions.SectionName));
+builder.Services.Configure<ActivityOptions>(builder.Configuration.GetSection(ActivityOptions.SectionName));
 
 // The production UI is served by this same application, so CORS is normally only needed for local
 // development or an intentionally separate client. Configure allowed origins instead of hard-coding them.
@@ -46,10 +48,12 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILobbyStore, LobbyStore>();
 builder.Services.AddSingleton<IChatStore, ChatStore>();
+builder.Services.AddSingleton<IActivityStore, ActivityStore>();
 builder.Services.AddSingleton<ISteamAvatarProvider, SteamAvatarProvider>();
 builder.Services.AddSingleton<LobbyBotCoordinator>();
 builder.Services.AddHostedService<BZ98LobbyWatcher>();
 builder.Services.AddHostedService<BZ98ChatObserver>();
+builder.Services.AddHostedService<ActivitySampler>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -96,7 +100,7 @@ app.MapControllers();
 
 // Render uses this path for deploy and runtime health checks. Lobby data can legitimately still be
 // empty immediately after a cold start, so process health is reported separately from snapshot age.
-app.MapGet("/api/health", (ILobbyStore store, LobbyBotCoordinator bot) =>
+app.MapGet("/api/health", (ILobbyStore store, IActivityStore activity, LobbyBotCoordinator bot) =>
 {
     var snapshot = store.Current;
 
@@ -105,6 +109,9 @@ app.MapGet("/api/health", (ILobbyStore store, LobbyBotCoordinator bot) =>
         status = "ok",
         lobbyCount = snapshot.Lobbies.Count,
         lastUpdatedUtc = snapshot.LastUpdatedUtc,
+        activityHistoryStartedUtc = activity.FirstSampleUtc,
+        activityLastSampleUtc = activity.LastSampleUtc,
+        activityDurable = activity.IsDurable,
         lobbyBot = bot.Status
     });
 });
