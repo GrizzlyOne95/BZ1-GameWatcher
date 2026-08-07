@@ -85,6 +85,16 @@ function lobby(overrides: Partial<BZ98Lobby> = {}): BZ98Lobby {
                 splinter: false
             }
         },
+        workshop: {
+            publishedFileId: '2299335165',
+            title: 'Community Map Pack',
+            previewUrl: 'https://example.test/workshop-preview.jpg',
+            creatorSteamId: '76561198012345678',
+            creatorProfileUrl: 'https://steamcommunity.com/profiles/76561198012345678/',
+            workshopUrl: 'https://steamcommunity.com/sharedfiles/filedetails/?id=2299335165',
+            updatedUtc: '2026-08-01T12:00:00Z',
+            subscriptions: 1234
+        },
         owner: host.id,
         userCount: 2,
         users: {
@@ -133,20 +143,37 @@ describe('LobbyDetailComponent', () => {
         httpMock.verify();
     }
 
-    it('renders a stable lobby detail view with owner, rules, players, and platform mix', fakeAsync(() => {
+    it('renders a stable lobby detail view with owner, rules, players, platform mix, and Workshop metadata', fakeAsync(() => {
         start();
         httpMock.expectOne(LOBBY_URL).flush(lobby());
         fixture.detectChanges();
 
         const text = fixture.nativeElement.textContent as string;
+        const preview = fixture.nativeElement.querySelector('img[alt="Community Map Pack Workshop preview"]') as HTMLImageElement | null;
         expect(text).toContain('bunker.bzn');
         expect(text).toContain('HostPilot');
         expect(text).toContain('Strategy');
         expect(text).toContain('Steam 1');
         expect(text).toContain('Web 1');
-        expect(text).toContain('Open Workshop item');
+        expect(text).toContain('Community Map Pack');
+        expect(text).toContain('Workshop 2299335165');
+        expect(text).toContain('1,234');
         expect(text).toContain('Join game');
+        expect(preview?.src).toContain('workshop-preview.jpg');
         expect(fixture.componentInstance.ownerDisplayName(fixture.componentInstance.lobby!)).toBe('HostPilot');
+
+        teardown();
+    }));
+
+    it('falls back to the raw Workshop link when Steam enrichment is unavailable', fakeAsync(() => {
+        start();
+        httpMock.expectOne(LOBBY_URL).flush(lobby({ workshop: null }));
+        fixture.detectChanges();
+
+        const text = fixture.nativeElement.textContent as string;
+        expect(text).toContain('2299335165');
+        expect(text).toContain('Open Workshop item');
+        expect(text).not.toContain('Community Map Pack');
 
         teardown();
     }));
