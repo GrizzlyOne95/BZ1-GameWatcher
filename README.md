@@ -2,8 +2,8 @@
 
 Live lobby list for **Battlezone 98 Redux**, running at https://bz1-gamewatcher.onrender.com/games
 
-The site shows the games currently open, who is in them, and lets you jump straight into a lobby
-through Steam.
+The site shows the games currently open, who is in them, recent read-only public waiting-room chat,
+privacy-safe multiplayer activity history, and lets you jump straight into a lobby through Steam.
 
 <img width="3733" height="1919" alt="image" src="https://github.com/user-attachments/assets/fd3db1cd-2f7f-474f-92a4-eeeade5bb9ee" />
 
@@ -13,12 +13,13 @@ through Steam.
 ## How it works
 
 ```text
-Rebellion lobby server ──WebSocket──▶ API (ASP.NET Core 10) ──REST──▶ Web (Angular 18)
+Rebellion lobby server ──WebSocket──▶ API (ASP.NET Core 10) ──REST──▶ Web (Angular 20)
 ```
 
 - **API** (`API/`) maintains the lobby connection, keeps an in-memory snapshot, enriches Steam
-  players with avatars, and serves `GET /api/BZ98Lobby`.
-- **Web** (`Web/`) polls the API every few seconds and renders the game list.
+  players with avatars, observes selected public chat lobbies read-only, records aggregate activity,
+  and serves the public API.
+- **Web** (`Web/`) polls the API every few seconds and renders game, waiting-room, unit, and activity views.
 - **Render image** (`Dockerfile.render`) builds both projects and serves Angular from the ASP.NET
   application's `wwwroot`, keeping the UI and API on one origin.
 - **Optional lobby bot** can join or recreate a configured chat lobby, greet players, and send timed
@@ -50,11 +51,17 @@ The API reads settings from `API/appsettings.json`, environment variables, and .
 | `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0` | Origins allowed to call the API directly. Not needed when the UI and API are same-origin. |
 | `Battlezone:LobbyServerUrl` | `Battlezone__LobbyServerUrl` | WebSocket endpoint of the lobby server. |
 | `Battlezone:FlaggedSteamIds` | `Battlezone__FlaggedSteamIds__0` | Steam IDs marked with `isDangerous` in API responses. Empty by default. |
+| `Activity:Enabled` | `Activity__Enabled` | Enables privacy-safe aggregate multiplayer sampling. |
+| `Activity:SamplingInterval` | `Activity__SamplingInterval` | Interval between historical activity samples; defaults to five minutes. |
+| `Activity:Retention` | `Activity__Retention` | Maximum retained activity history; defaults to 30 days. |
+| `Activity:PersistencePath` | `Activity__PersistencePath` | Optional JSON file used for activity history persistence. |
+| `Activity:PersistenceIsDurable` | `Activity__PersistenceIsDurable` | Set only when the persistence path is on storage that survives restarts/redeploys. |
 | `LobbyBot:Enabled` | `LobbyBot__Enabled` | Enables the optional chat-lobby bot. Disabled by default. |
 | `LobbyBot:PlayerName` | `LobbyBot__PlayerName` | Bot identity shown in the lobby. |
 | `LobbyBot:LobbyName` | `LobbyBot__LobbyName` | Named chat lobby the bot should join or claim. |
 
-Additional greeting, announcement, cooldown, member-limit, and auto-claim settings are documented in
+Activity persistence, export, and the opt-in paid Render disk example are documented in
+[`ACTIVITY_HISTORY.md`](ACTIVITY_HISTORY.md). Additional bot and deployment settings are documented in
 [`RENDER_DEPLOYMENT.md`](RENDER_DEPLOYMENT.md).
 
 Keep secrets out of source control. For local API development:
@@ -114,14 +121,15 @@ The recommended free-hosting configuration is defined by:
 
 - `render.yaml` — one free Docker web service in Render's Ohio region
 - `Dockerfile.render` — Angular and ASP.NET Core combined into one image
-- `/api/health` — process, lobby-snapshot, and non-secret bot status
+- `/api/health` — process, lobby-snapshot, activity-storage, and non-secret bot status
 
 See [`RENDER_DEPLOYMENT.md`](RENDER_DEPLOYMENT.md) for the exact dashboard, secret, bot, custom-domain,
 and DNS steps.
 
 A free Render service can spin down after 15 minutes without inbound traffic. The next visitor wakes
-it, which can take about one minute. The optional lobby bot is also unavailable while the free service
-is asleep; an always-on bot requires upgrading the same service later.
+it, which can take about one minute. Free Render web services also use an ephemeral filesystem, so the
+Activity page reports non-durable history unless persistent storage is explicitly configured. See
+[`ACTIVITY_HISTORY.md`](ACTIVITY_HISTORY.md) for the opt-in durable-storage path.
 
 ## Self-host with Docker Compose
 
@@ -143,4 +151,4 @@ with the commit SHA:
 The owner segment is derived from the repository owner at build time, so forks publish to their own
 namespace. Pull requests build and test without publishing.
 
-Thanks to JJ173 for initial creation of this project. 
+Thanks to JJ173 for initial creation of this project.
