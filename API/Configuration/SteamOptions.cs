@@ -13,8 +13,8 @@ namespace BZAPI.Configuration
         /// <summary>
         /// Steam Web API key, obtained from https://steamcommunity.com/dev/apikey.
         /// Supplied via configuration: the <c>Steam__ApiKey</c> environment variable or user
-        /// secrets. When empty, avatar and Workshop-creator-name lookups are skipped. Public
-        /// Workshop item metadata can still be resolved without a key.
+        /// secrets. When empty, avatar lookups are skipped. Public Workshop item metadata can
+        /// still be resolved without a key.
         /// </summary>
         public string ApiKey { get; set; } = string.Empty;
 
@@ -34,5 +34,11 @@ namespace BZAPI.Configuration
 
         /// <summary>How long a failed or missing Workshop lookup is negatively cached.</summary>
         public TimeSpan WorkshopFailureCacheDuration { get; set; } = TimeSpan.FromMinutes(10);
+
+        /// <summary>
+        /// Maximum time a lobby response waits for an uncached Workshop lookup. Steam enrichment
+        /// is optional, so a slow third-party endpoint must not make the lobby list feel offline.
+        /// </summary>
+        public TimeSpan WorkshopRequestTimeout { get; set; } = TimeSpan.FromSeconds(4);
     }
 }
