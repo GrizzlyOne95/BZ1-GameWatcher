@@ -83,9 +83,10 @@ public sealed class BZ98ChatObserver : BackgroundService
                 // Expected while stopping observers.
             }
 
-            foreach (var session in _observers.Values)
+            foreach (var pair in _observers)
             {
-                session.Cancellation.Dispose();
+                _chat.SetObserverUserId(pair.Key, null);
+                pair.Value.Cancellation.Dispose();
             }
 
             _observers.Clear();
@@ -99,6 +100,7 @@ public sealed class BZ98ChatObserver : BackgroundService
                      .Select(pair => pair.Key)
                      .ToList())
         {
+            _chat.SetObserverUserId(completed, null);
             _observers[completed].Cancellation.Dispose();
             _observers.Remove(completed);
         }
@@ -200,6 +202,11 @@ public sealed class BZ98ChatObserver : BackgroundService
                                     lobbyId);
                                 return;
                             }
+
+                            // The observer is a real Web user while joined. Retain its server-issued
+                            // ID internally so the public Game Watcher roster/count can exclude only
+                            // our own observer without hiding third-party Web accounts such as !BRIDGE.
+                            _chat.SetObserverUserId(lobbyId, payload?["id"]?.ToString());
 
                             Send(client, new { type = "DoEnterLounge", content = true });
                             SetIdentity(client);
