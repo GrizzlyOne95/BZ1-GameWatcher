@@ -17,6 +17,10 @@ export class BZ98Service {
         return this.httpClient.get<BZ98Lobby[]>(`${environment.apiUrl}BZ98Lobby`);
     }
 
+    getBZ98Lobby(lobbyId: number | string): Observable<BZ98Lobby> {
+        return this.httpClient.get<BZ98Lobby>(`${environment.apiUrl}BZ98Lobby/${lobbyId}`);
+    }
+
     getActivity(range: ActivityRange): Observable<ActivityResponse> {
         return this.httpClient.get<ActivityResponse>(`${environment.apiUrl}activity`, {
             params: { range }
