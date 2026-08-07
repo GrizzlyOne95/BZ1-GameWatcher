@@ -28,6 +28,7 @@ namespace BZAPI.Models.Responses
         public LobbyMetaDataResponse? MetaData { get; init; }
         public LobbyStatsResponse? Stats { get; init; }
         public WorkshopItemResponse? Workshop { get; init; }
+        public MapMetadataResponse? Map { get; init; }
         public Dictionary<string, UserResponse> Users { get; init; } = [];
         public IReadOnlyList<ChatMessageResponse> RecentChat { get; init; } = [];
     }
@@ -46,6 +47,29 @@ namespace BZAPI.Models.Responses
         public string WorkshopUrl { get; init; } = string.Empty;
         public DateTimeOffset? UpdatedUtc { get; init; }
         public long? Subscriptions { get; init; }
+    }
+
+    /// <summary>
+    /// Public display metadata for the current map. A null value only means the optional map
+    /// metadata source could not recognize/respond for the map; the raw map filename remains in
+    /// <see cref="LobbyStatsResponse.MapFile"/>.
+    /// </summary>
+    public sealed class MapMetadataResponse
+    {
+        public string MapFile { get; init; } = string.Empty;
+        public string ModId { get; init; } = string.Empty;
+        public bool IsStock { get; init; }
+        public string? Title { get; init; }
+        public string? ImageUrl { get; init; }
+        public string? Description { get; init; }
+        public int? MinPlayers { get; init; }
+        public int? MaxPlayers { get; init; }
+        public string? TypeCode { get; init; }
+        public string? TypeLabel { get; init; }
+        public string? ModeCode { get; init; }
+        public string? ModeLabel { get; init; }
+        public string? CustomTypeCode { get; init; }
+        public string? CustomTypeName { get; init; }
     }
 
     public sealed class ChatMessageResponse
