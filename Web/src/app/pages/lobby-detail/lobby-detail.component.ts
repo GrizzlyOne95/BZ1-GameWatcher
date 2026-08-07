@@ -4,12 +4,13 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faArrowLeft, faCopy, faLink, faLock, faLockOpen, faPlay, faUser } from '@fortawesome/free-solid-svg-icons';
-import { EMPTY, Subject, catchError, exhaustMap, takeUntil, timer } from 'rxjs';
+import { EMPTY, Subject, catchError, exhaustMap, takeUntil } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SiteNavComponent } from '../../components/site-nav/site-nav.component';
 import { BZ98ChatMessage, BZ98Lobby, BZ98User } from '../../models/bz98-lobby-info';
 import { BZ98Service } from '../../services/bz98.service';
 import { buildSteamJoinUrl } from '../../services/steam-join';
+import { visibilityAwareTimer } from '../../services/visibility-polling';
 
 const TIME_ZONE_STORAGE_KEY = 'bz98-display-time-zone';
 
@@ -55,7 +56,7 @@ export class LobbyDetailComponent implements OnInit, OnDestroy {
 
         this.lobbyId = Number(rawLobbyId);
 
-        timer(0, environment.lobbyRefreshIntervalMs)
+        visibilityAwareTimer(environment.lobbyRefreshIntervalMs, 60_000)
             .pipe(
                 exhaustMap(() => this.bz98Service.getBZ98Lobby(rawLobbyId).pipe(
                     catchError((error: unknown) => {
