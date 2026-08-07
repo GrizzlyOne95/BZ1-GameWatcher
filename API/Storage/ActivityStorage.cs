@@ -18,6 +18,7 @@ public interface IActivityStore
     IReadOnlyList<ActivitySample> GetSince(DateTimeOffset sinceUtc);
     DateTimeOffset? FirstSampleUtc { get; }
     DateTimeOffset? LastSampleUtc { get; }
+    string StorageKind { get; }
     bool IsDurable { get; }
     void Add(ActivitySample sample);
 }
@@ -37,6 +38,7 @@ public sealed class ActivityStore : IActivityStore
     private readonly List<ActivitySample> _samples = [];
     private readonly TimeSpan _retention;
     private readonly string? _persistencePath;
+    private readonly bool _persistenceIsDurable;
     private readonly ILogger<ActivityStore> _logger;
 
     public ActivityStore(IOptions<ActivityOptions> options, ILogger<ActivityStore> logger)
@@ -48,12 +50,27 @@ public sealed class ActivityStore : IActivityStore
         _persistencePath = string.IsNullOrWhiteSpace(configured.PersistencePath)
             ? null
             : configured.PersistencePath.Trim();
+        _persistenceIsDurable = _persistencePath is not null && configured.PersistenceIsDurable;
         _logger = logger;
+
+        if (configured.PersistenceIsDurable && _persistencePath is null)
+        {
+            _logger.LogWarning(
+                "Activity persistence was marked durable but no persistence path was configured; using memory-only history.");
+        }
+        else if (_persistencePath is not null && !_persistenceIsDurable)
+        {
+            _logger.LogInformation(
+                "Activity history is file-backed at {ActivityPersistencePath}, but the path is not declared durable.",
+                _persistencePath);
+        }
 
         LoadPersistedSamples();
     }
 
-    public bool IsDurable => _persistencePath is not null;
+    public string StorageKind => _persistencePath is null ? "memory" : "file";
+
+    public bool IsDurable => _persistenceIsDurable;
 
     public DateTimeOffset? FirstSampleUtc
     {
