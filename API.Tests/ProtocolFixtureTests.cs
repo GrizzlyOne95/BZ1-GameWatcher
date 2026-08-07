@@ -30,6 +30,22 @@ public sealed class ProtocolFixtureTests
     }
 
     [Fact]
+    public void Host_snapshot_works_for_steam_and_web_owners()
+    {
+        var steamLobby = FixtureLoader.LoadLobby("game-stock-waiting.json");
+        var webLobby = FixtureLoader.LoadLobby("chat-default-web-owner.json");
+
+        Assert.Equal("S76561198000000001", steamLobby.Host?.Id);
+        Assert.Equal("steam", steamLobby.Host?.AuthType);
+        Assert.True(steamLobby.Host?.IsSteam);
+
+        Assert.Equal("B1000002", webLobby.Host?.Id);
+        Assert.Equal("web", webLobby.Host?.AuthType);
+        Assert.False(webLobby.Host?.IsSteam);
+        Assert.False(webLobby.Host?.IsGOG);
+    }
+
+    [Fact]
     public void Full_game_settings_tuple_maps_all_known_fields()
     {
         var lobby = FixtureLoader.LoadLobby("game-stock-waiting.json");
@@ -126,7 +142,8 @@ public sealed class ProtocolFixtureTests
         Assert.True(passworded.HasPassword);
         Assert.DoesNotContain(
             typeof(LobbyResponse).GetProperties(),
-            property => string.Equals(property.Name, "Password", StringComparison.OrdinalIgnoreCase));
+            property => property.Name.Contains("Password", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(property.Name, nameof(LobbyResponse.HasPassword), StringComparison.Ordinal));
     }
 
     [Fact]
@@ -191,24 +208,29 @@ public sealed class ProtocolFixtureTests
     }
 
     [Fact]
-    public void Public_user_response_cannot_expose_upstream_network_addresses()
+    public void Public_response_contract_cannot_expose_upstream_network_addresses()
     {
         var lobby = FixtureLoader.LoadLobby("users-mixed-auth-types.json");
         var response = lobby.ToResponse();
-        var publicProperties = typeof(UserResponse).GetProperties().Select(property => property.Name).ToArray();
+        var userProperties = typeof(UserResponse).GetProperties().Select(property => property.Name).ToArray();
+        var lobbyProperties = typeof(LobbyResponse).GetProperties().Select(property => property.Name).ToArray();
 
-        Assert.DoesNotContain("IPAddress", publicProperties);
-        Assert.DoesNotContain("WANAddress", publicProperties);
-        Assert.DoesNotContain("LanAddresses", publicProperties);
+        Assert.DoesNotContain("IPAddress", userProperties);
+        Assert.DoesNotContain("WANAddress", userProperties);
+        Assert.DoesNotContain("LanAddresses", userProperties);
+        Assert.DoesNotContain("IPAddress", lobbyProperties);
+        Assert.DoesNotContain("WANAddress", lobbyProperties);
+        Assert.DoesNotContain("LanAddresses", lobbyProperties);
 
         var json = JsonSerializer.Serialize(response, new JsonSerializerOptions(JsonSerializerDefaults.Web));
-        Assert.DoesNotContain("ipAddress", json, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("wanAddress", json, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("lanAddresses", json, StringComparison.OrdinalIgnoreCase);
+        var lowerJson = json.ToLowerInvariant();
+        Assert.DoesNotContain("ipaddress", lowerJson);
+        Assert.DoesNotContain("wanaddress", lowerJson);
+        Assert.DoesNotContain("lanaddresses", lowerJson);
         Assert.DoesNotContain("192.0.2.", json);
         Assert.DoesNotContain("198.51.100.", json);
         Assert.DoesNotContain("203.0.113.", json);
-        Assert.DoesNotContain("2001:db8", json, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("2001:db8", lowerJson);
     }
 
     [Fact]
