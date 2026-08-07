@@ -111,6 +111,7 @@ app.MapGet("/api/health", (ILobbyStore store, IActivityStore activity, LobbyBotC
         lastUpdatedUtc = snapshot.LastUpdatedUtc,
         activityHistoryStartedUtc = activity.FirstSampleUtc,
         activityLastSampleUtc = activity.LastSampleUtc,
+        activityStorage = activity.StorageKind,
         activityDurable = activity.IsDurable,
         lobbyBot = bot.Status
     });

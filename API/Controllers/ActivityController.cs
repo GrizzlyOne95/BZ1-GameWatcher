@@ -48,6 +48,7 @@ public sealed class ActivityController(
             HistoryStartedUtc = _activityStore.FirstSampleUtc,
             LastHistoricalSampleUtc = _activityStore.LastSampleUtc,
             LobbyDataUpdatedUtc = snapshot.LastUpdatedUtc,
+            HistoryStorage = _activityStore.StorageKind,
             DurableHistory = _activityStore.IsDurable,
             Current = current is null ? null : ActivitySampleResponse.From(current),
             Summary = new ActivitySummaryResponse
@@ -58,6 +59,26 @@ public sealed class ActivityController(
                 HistoricalSampleCount = raw.Count
             },
             Samples = chartSamples.Select(ActivitySampleResponse.From).ToArray()
+        });
+    }
+
+    /// <summary>
+    /// Exports the retained aggregate activity window for backup/migration. The activity store
+    /// contains counts only — never player names/IDs, chat text, lobby metadata, or network data.
+    /// </summary>
+    [HttpGet("export")]
+    [ProducesResponseType(typeof(ActivityExportResponse), StatusCodes.Status200OK)]
+    public ActionResult<ActivityExportResponse> ExportActivity()
+    {
+        var samples = _activityStore.GetSince(DateTimeOffset.MinValue);
+        return Ok(new ActivityExportResponse
+        {
+            ExportedAtUtc = DateTimeOffset.UtcNow,
+            HistoryStartedUtc = _activityStore.FirstSampleUtc,
+            LastHistoricalSampleUtc = _activityStore.LastSampleUtc,
+            HistoryStorage = _activityStore.StorageKind,
+            DurableHistory = _activityStore.IsDurable,
+            Samples = samples.Select(ActivitySampleResponse.From).ToArray()
         });
     }
 
@@ -107,9 +128,20 @@ public sealed class ActivityResponse
     public DateTimeOffset? HistoryStartedUtc { get; init; }
     public DateTimeOffset? LastHistoricalSampleUtc { get; init; }
     public DateTimeOffset? LobbyDataUpdatedUtc { get; init; }
+    public string HistoryStorage { get; init; } = "memory";
     public bool DurableHistory { get; init; }
     public ActivitySampleResponse? Current { get; init; }
     public ActivitySummaryResponse Summary { get; init; } = new();
+    public IReadOnlyList<ActivitySampleResponse> Samples { get; init; } = [];
+}
+
+public sealed class ActivityExportResponse
+{
+    public DateTimeOffset ExportedAtUtc { get; init; }
+    public DateTimeOffset? HistoryStartedUtc { get; init; }
+    public DateTimeOffset? LastHistoricalSampleUtc { get; init; }
+    public string HistoryStorage { get; init; } = "memory";
+    public bool DurableHistory { get; init; }
     public IReadOnlyList<ActivitySampleResponse> Samples { get; init; } = [];
 }
 

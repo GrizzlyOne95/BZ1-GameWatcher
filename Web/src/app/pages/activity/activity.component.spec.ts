@@ -15,6 +15,7 @@ function activityResponse(overrides: Partial<ActivityResponse> = {}): ActivityRe
         historyStartedUtc: '2026-08-06T00:00:00Z',
         lastHistoricalSampleUtc: '2026-08-06T01:00:00Z',
         lobbyDataUpdatedUtc: '2026-08-06T01:00:30Z',
+        historyStorage: 'memory',
         durableHistory: false,
         current: {
             timeUtc: '2026-08-06T01:00:30Z',
@@ -77,15 +78,26 @@ describe('ActivityComponent', () => {
         httpMock.verify();
     }
 
-    it('renders current activity and summary metrics', fakeAsync(() => {
+    it('renders current activity, storage state, and summary metrics', fakeAsync(() => {
         load();
 
         const text = fixture.nativeElement.textContent as string;
+        const exportLink = fixture.nativeElement.querySelector('a[href="/api/activity/export"]') as HTMLAnchorElement | null;
         expect(text).toContain('Players online');
         expect(text).toContain('Peak players');
         expect(text).toContain('Average players');
-        expect(text).toContain('History is currently process-local.');
+        expect(text).toContain('History is not currently durable.');
+        expect(text).toContain('Samples are process-local');
+        expect(exportLink).not.toBeNull();
         expect(fixture.componentInstance.playerPoints.length).toBeGreaterThan(0);
+
+        teardown();
+    }));
+
+    it('explains file-backed history that is not on durable storage', fakeAsync(() => {
+        load(activityResponse({ historyStorage: 'file', durableHistory: false }));
+
+        expect(fixture.nativeElement.textContent).toContain('Samples are written to a local file');
 
         teardown();
     }));

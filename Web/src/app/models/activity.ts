@@ -21,6 +21,7 @@ export interface ActivityResponse {
     historyStartedUtc: string | null;
     lastHistoricalSampleUtc: string | null;
     lobbyDataUpdatedUtc: string | null;
+    historyStorage: 'memory' | 'file' | string;
     durableHistory: boolean;
     current: ActivitySample | null;
     summary: ActivitySummary;
