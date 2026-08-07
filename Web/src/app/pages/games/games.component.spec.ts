@@ -293,11 +293,39 @@ describe('GamesComponent', () => {
         expect(component.ownerDisplayName(chatLobby)).toBe('!BRIDGE');
         expect(component.userPlatform(bridgeOwner)).toBe('Web');
         expect(pageText).toContain('Owner:');
+        expect(pageText).toContain('Last chat');
         expect(pageText).toContain('Recent chat');
         expect(pageText).toContain('PilotOne');
         expect(pageText).toContain('Anyone up for a game?');
         expect(pageText).toContain('Web visitors cannot send messages into Battlezone');
         expect(pageText).not.toContain('Lobby metadata');
+
+        teardown();
+    }));
+
+    it('shows only the latest five chat lines by default while retaining older messages on demand', fakeAsync(() => {
+        const recentChat = Array.from({ length: 7 }, (_, index) => ({
+            author: `Pilot${index + 1}`,
+            speakerId: `S${index + 1}`,
+            text: `Message ${index + 1}`,
+            timeUtc: `2026-08-07T02:0${index}:00Z`
+        }));
+
+        load([
+            lobby({
+                id: 1004,
+                isChat: true,
+                recentChat
+            })
+        ]);
+
+        const previewLines = fixture.nativeElement.querySelectorAll('.chat-preview > .chat-lines > .chat-line') as NodeListOf<HTMLElement>;
+        const historySummary = fixture.nativeElement.querySelector('.chat-history-details summary') as HTMLElement | null;
+
+        expect(previewLines.length).toBe(5);
+        expect(previewLines[0].textContent).toContain('Message 3');
+        expect(previewLines[4].textContent).toContain('Message 7');
+        expect(historySummary?.textContent).toContain('Show 2 older retained messages');
 
         teardown();
     }));
