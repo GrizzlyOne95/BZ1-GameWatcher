@@ -1,0 +1,123 @@
+<app-site-nav></app-site-nav>
+
+<main class="about-shell">
+    <header class="about-hero">
+        <div class="eyebrow">About this project</div>
+        <h1>Battlezone 98 Redux Game Watcher</h1>
+        <p>
+            An unofficial community utility for seeing current Battlezone 98 Redux multiplayer
+            activity, understanding a lobby before joining, and finding useful game information in
+            one place. It is not operated by Rebellion.
+        </p>
+    </header>
+
+    <section class="panel">
+        <div class="eyebrow">Privacy by design</div>
+        <h2>What Game Watcher deliberately does not publish</h2>
+        <div class="privacy-grid">
+            <article>
+                <h3>Network addresses</h3>
+                <p>
+                    The upstream lobby protocol can contain player IP, WAN, and LAN addresses.
+                    Game Watcher's public API uses a separate response model that omits those fields.
+                </p>
+            </article>
+            <article>
+                <h3>Writable web chat</h3>
+                <p>
+                    The website can display a bounded recent window from selected public waiting
+                    rooms, but browser clients have no lobby-server credentials or operation for
+                    sending messages into Battlezone.
+                </p>
+            </article>
+            <article>
+                <h3>Player-level history</h3>
+                <p>
+                    Historical activity stores aggregate counts only. It does not retain player
+                    names, player IDs, Steam IDs, chat text, lobby names/settings, or network
+                    identifiers.
+                </p>
+            </article>
+            <article>
+                <h3>Persistent chat archives</h3>
+                <p>
+                    Observed chat is bounded in memory and is not persisted. It exists to show
+                    recent public waiting-room activity, not to build a permanent chat log.
+                </p>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="eyebrow">What you are seeing</div>
+        <h2>Data sources</h2>
+        <dl class="source-list">
+            <div>
+                <dt>Live multiplayer state</dt>
+                <dd>
+                    Public lobby/user/game metadata reported by the Battlezone 98 Redux multiplayer
+                    service. This remains the authoritative source for whether a lobby currently exists.
+                </dd>
+            </div>
+            <div>
+                <dt>Steam</dt>
+                <dd>
+                    Public Steam profile/avatar information and public Workshop item metadata are
+                    used as optional enrichment. If Steam is unavailable, the lobby still renders.
+                </dd>
+            </div>
+            <div>
+                <dt>Map catalog</dt>
+                <dd>
+                    Public BZ98R map metadata from gamelistassets.iondriver.com is used to resolve
+                    friendly map titles, previews, player ranges, and actual multiplayer modes.
+                    Raw lobby map filenames remain visible when a map cannot be resolved.
+                </dd>
+            </div>
+            <div>
+                <dt>Unit database</dt>
+                <dd>
+                    Stock object-definition data is bundled with the site. Where a Battlezone Wiki
+                    craft render is available, the image is shown with a link back to its source.
+                </dd>
+            </div>
+        </dl>
+    </section>
+
+    <section class="panel">
+        <div class="eyebrow">Retention and local storage</div>
+        <h2>How long information sticks around</h2>
+        <div class="facts-grid">
+            <article>
+                <strong>Recent chat</strong>
+                <span>Bounded in server memory; not persisted.</span>
+            </article>
+            <article>
+                <strong>Activity history</strong>
+                <span>Aggregate samples every five minutes by default, retained for up to 30 days.</span>
+            </article>
+            <article>
+                <strong>Free Render deployment</strong>
+                <span>Activity history is non-durable and can reset on restart, spin-down, or redeploy.</span>
+            </article>
+            <article>
+                <strong>Your browser</strong>
+                <span>The selected display time zone is saved locally on your device. The installable PWA also caches the application shell, never <code>/api/</code> live data.</span>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="eyebrow">Open source</div>
+        <h2>Inspect how it works</h2>
+        <p class="mb-3">
+            The watcher, public API boundary, read-only chat observer, activity aggregation, and web
+            client are open source. That makes the privacy behavior and protocol assumptions reviewable.
+        </p>
+        <div class="link-row">
+            <a class="btn btn-primary" href="https://github.com/GrizzlyOne95/BZ1-GameWatcher" target="_blank" rel="noopener noreferrer">View source on GitHub</a>
+            <a class="btn btn-outline-light" href="https://github.com/GrizzlyOne95/BZ1-GameWatcher/blob/main/docs/read-only-chat.md" target="_blank" rel="noopener noreferrer">Read-only chat design</a>
+            <a class="btn btn-outline-light" href="https://github.com/GrizzlyOne95/BZ1-GameWatcher/blob/main/ACTIVITY_HISTORY.md" target="_blank" rel="noopener noreferrer">Activity storage details</a>
+        </div>
+    </section>
+</main>
