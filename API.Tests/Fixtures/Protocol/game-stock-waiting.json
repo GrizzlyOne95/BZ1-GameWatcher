@@ -1,0 +1,33 @@
+{
+  "id": 101,
+  "clientVersion": "2.0.185",
+  "createdTime": "2026-08-07T12:00:00Z",
+  "isChat": false,
+  "isLocked": false,
+  "isPrivate": false,
+  "memberLimit": 8,
+  "owner": "S76561198000000001",
+  "userCount": 1,
+  "metaData": {
+    "lobbyId": 101,
+    "gameVersion": "2.2.301",
+    "gameSettings": "1*dm01.bzn*89ABCDEF*0*1*1*0*20*5*8*1*30*0",
+    "gameType": "1",
+    "launched": "0",
+    "name": "~game~public~~Stock Arena",
+    "userCount": "1"
+  },
+  "users": {
+    "S76561198000000001": {
+      "authType": "steam",
+      "clientVersion": "2.0.185",
+      "id": "S76561198000000001",
+      "lobby": 101,
+      "name": "Steam Host",
+      "metaData": {
+        "ready": "1*dm01.bzn*89ABCDEF*0*1*1*0*20*5*8*1*30*0",
+        "team": "1"
+      }
+    }
+  }
+}
