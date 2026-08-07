@@ -1,0 +1,30 @@
+{
+  "id": 201,
+  "clientVersion": "2.0.185",
+  "createdTime": "2026-08-07T12:15:00Z",
+  "isChat": true,
+  "isLocked": false,
+  "isPrivate": false,
+  "memberLimit": 32,
+  "owner": "B1000002",
+  "userCount": 2,
+  "metaData": {
+    "lobbyId": 201,
+    "name": "~chat~public~~Default Chat",
+    "userCount": "2"
+  },
+  "users": {
+    "B1000002": {
+      "authType": "web",
+      "id": "B1000002",
+      "lobby": 201,
+      "name": "Bridge Service"
+    },
+    "B9000001": {
+      "authType": "web",
+      "id": "B9000001",
+      "lobby": 201,
+      "name": "Synthetic Observer"
+    }
+  }
+}

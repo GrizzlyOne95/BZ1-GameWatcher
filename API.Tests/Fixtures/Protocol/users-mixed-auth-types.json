@@ -1,0 +1,52 @@
+{
+  "id": 202,
+  "clientVersion": "2.0.185",
+  "createdTime": "2026-08-07T12:20:00Z",
+  "isChat": true,
+  "isLocked": false,
+  "isPrivate": false,
+  "memberLimit": 32,
+  "owner": "B1000002",
+  "userCount": 3,
+  "metaData": {
+    "lobbyId": 202,
+    "name": "~chat~public~~Mixed Auth",
+    "userCount": "3"
+  },
+  "users": {
+    "B1000002": {
+      "authType": "web",
+      "id": "B1000002",
+      "ipAddress": "192.0.2.10",
+      "wanAddress": "198.51.100.10",
+      "lanAddresses": [
+        "203.0.113.10",
+        "2001:db8::10"
+      ],
+      "lobby": 202,
+      "name": "Web User"
+    },
+    "G1000001": {
+      "authType": "GOG",
+      "id": "G1000001",
+      "ipAddress": "192.0.2.11",
+      "wanAddress": "198.51.100.11",
+      "lanAddresses": [
+        "203.0.113.11"
+      ],
+      "lobby": 202,
+      "name": "GOG User"
+    },
+    "S76561198000000004": {
+      "authType": " Steam ",
+      "id": "S76561198000000004",
+      "ipAddress": "192.0.2.12",
+      "wanAddress": "198.51.100.12",
+      "lanAddresses": [
+        "203.0.113.12"
+      ],
+      "lobby": 202,
+      "name": "Steam User"
+    }
+  }
+}

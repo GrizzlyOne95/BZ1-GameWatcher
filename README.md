@@ -22,6 +22,10 @@ Rebellion lobby server ──WebSocket──▶ API (ASP.NET Core 10) ──REST
   players with avatars, resolves public Steam Workshop metadata, resolves public BZ98 map titles,
   previews and game modes, observes selected public chat lobbies read-only, records aggregate
   activity, and serves the public API.
+- **Protocol regression corpus** (`API.Tests/Fixtures/Protocol/`) contains intentionally synthetic,
+  sanitized BZ98R lobby examples. Tests run those fixtures through the production normalization and
+  response-mapping path so reverse-engineered protocol behavior and the public privacy boundary are
+  executable documentation rather than assumptions embedded only in watcher code.
 - **Web** (`Web/`) polls the API every few seconds and renders game, waiting-room, lobby-detail,
   unit, and activity views.
 - **PWA shell** (`Web/public/sw.js`) makes the production UI installable and gives the application
@@ -109,6 +113,26 @@ local development cannot accidentally become pinned behind a stale PWA cache.
 
 ## Tests
 
+Run the API protocol/privacy regression suite:
+
+```bash
+dotnet test API.Tests/API.Tests.csproj
+```
+
+The fixture corpus is in `API.Tests/Fixtures/Protocol/`. It contains synthetic protocol research
+artifacts rather than raw captures. Real IP/WAN/LAN addresses, passwords, tokens, and authentication
+secrets are prohibited. When a network field must exist to test the privacy boundary, fixtures may
+use only the RFC 5737 IPv4 documentation blocks or the RFC 3849 `2001:db8::/32` IPv6 block. A fixture
+safety test enforces that rule in CI.
+
+The corpus exists to:
+
+1. prevent Game Watcher protocol regressions;
+2. document reverse-engineered BZ98R behavior with executable examples; and
+3. provide sanitized protocol inputs for future protocol-drift and matchmaking-server/Shim research.
+
+Run the web tests:
+
 ```bash
 cd Web
 npm run test:ci
@@ -158,8 +182,8 @@ network and nginx proxies `/api/`.
 
 ## Continuous integration
 
-Pushing to `main` builds and tests both projects, then publishes images to GHCR tagged `latest` and
-with the commit SHA:
+Pushing to `main` builds and tests both projects, including the sanitized API protocol corpus, then
+publishes images to GHCR tagged `latest` and with the commit SHA:
 
 - `ghcr.io/battlezonescrapfield/battlezone-api-ghcr`
 - `ghcr.io/battlezonescrapfield/battlezone-web-ghcr`

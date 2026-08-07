@@ -1,0 +1,35 @@
+{
+  "id": 102,
+  "clientVersion": "2.0.185",
+  "createdTime": "2026-08-07T12:05:00Z",
+  "isChat": false,
+  "isLocked": false,
+  "isPrivate": false,
+  "memberLimit": 8,
+  "owner": "S76561198000000002",
+  "userCount": 2,
+  "metaData": {
+    "lobbyId": 102,
+    "gameVersion": "2.2.301",
+    "gameSettings": "1*st01.bzn*1234ABCD*0*0*1*1*45*3*8*0*50*1",
+    "gameType": "1",
+    "launched": "1",
+    "gameended": "0",
+    "name": "~game~public~~Launched Stock Game",
+    "userCount": "2"
+  },
+  "users": {
+    "S76561198000000002": {
+      "authType": "steam",
+      "id": "S76561198000000002",
+      "lobby": 102,
+      "name": "Host"
+    },
+    "G1000001": {
+      "authType": "gog",
+      "id": "G1000001",
+      "lobby": 102,
+      "name": "GOG Player"
+    }
+  }
+}

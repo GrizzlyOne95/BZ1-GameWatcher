@@ -1,0 +1,27 @@
+{
+  "id": 105,
+  "clientVersion": "2.0.185",
+  "createdTime": "2026-08-07T12:30:00Z",
+  "isChat": false,
+  "isLocked": false,
+  "isPrivate": false,
+  "memberLimit": 8,
+  "owner": "G1000002",
+  "userCount": 1,
+  "metaData": {
+    "lobbyId": 105,
+    "gameVersion": "2.2.301",
+    "gameSettings": "1*partial.bzn*00FFAA",
+    "gameType": "1",
+    "name": "~game~public~~Partial Metadata",
+    "userCount": "1"
+  },
+  "users": {
+    "G1000002": {
+      "authType": "gog",
+      "id": "G1000002",
+      "lobby": 105,
+      "name": "Partial Host"
+    }
+  }
+}

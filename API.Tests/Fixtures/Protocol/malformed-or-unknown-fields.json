@@ -1,0 +1,27 @@
+{
+  "id": 106,
+  "clientVersion": "future-client",
+  "createdTime": "2026-08-07T12:35:00Z",
+  "isChat": false,
+  "isLocked": false,
+  "isPrivate": false,
+  "memberLimit": 8,
+  "owner": "UNKNOWN-OWNER",
+  "userCount": 1,
+  "futureProtocolField": {
+    "opaque": true,
+    "version": 99
+  },
+  "metaData": {
+    "lobbyId": 106,
+    "gameVersion": "future",
+    "gameSettings": "x**not-a-crc*custom*maybe*2**NaN**oops***",
+    "gameType": "unexpected",
+    "name": "Future Lobby Name",
+    "userCount": "1",
+    "unknownMetadata": "preserve-forward-compatibility"
+  },
+  "users": {
+    "UNKNOWN-USER": null
+  }
+}
