@@ -39,7 +39,7 @@ builder.Services.AddCors(options =>
 // headers supplied by that proxy so generated URLs and request metadata use the public scheme.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardedHeaders = XForwardedHeaders();
     options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
@@ -111,6 +111,7 @@ app.MapGet("/api/health", (ILobbyStore store, IActivityStore activity, LobbyBotC
         lastUpdatedUtc = snapshot.LastUpdatedUtc,
         activityHistoryStartedUtc = activity.FirstSampleUtc,
         activityLastSampleUtc = activity.LastSampleUtc,
+        activityStorage = activity.StorageKind,
         activityDurable = activity.IsDurable,
         lobbyBot = bot.Status
     });
@@ -123,3 +124,6 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+static ForwardedHeaders XForwardedHeaders() =>
+    ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
