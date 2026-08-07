@@ -17,8 +17,15 @@ public sealed class ActivityOptions
     public TimeSpan Retention { get; set; } = TimeSpan.FromDays(30);
 
     /// <summary>
-    /// Optional JSON persistence file. Leave empty for process-local history. Point this at durable
-    /// mounted storage when uninterrupted multi-day history across restarts is required.
+    /// Optional JSON persistence file. Leave empty for memory-only history. On hosted platforms the
+    /// file is only durable if this path resides on mounted persistent storage.
     /// </summary>
     public string? PersistencePath { get; set; }
+
+    /// <summary>
+    /// Explicitly declares that <see cref="PersistencePath"/> is backed by storage that survives
+    /// service restarts/redeploys. This is intentionally opt-in: merely writing a file on an
+    /// ephemeral container filesystem must never be presented to visitors as durable history.
+    /// </summary>
+    public bool PersistenceIsDurable { get; set; } = false;
 }
