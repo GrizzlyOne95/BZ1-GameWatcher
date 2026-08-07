@@ -23,6 +23,7 @@ namespace BZAPI.Websocket
         private readonly ISteamAvatarProvider _avatars;
         private readonly BattlezoneOptions _options;
         private readonly LobbyBotCoordinator _bot;
+        private readonly LobbyConnectionState _connectionState;
         private readonly ILogger<BZ98LobbyWatcher> _logger;
 
         /// <summary>
@@ -40,6 +41,7 @@ namespace BZAPI.Websocket
             ISteamAvatarProvider avatars,
             IOptions<BattlezoneOptions> options,
             LobbyBotCoordinator bot,
+            LobbyConnectionState connectionState,
             ILogger<BZ98LobbyWatcher> logger)
         {
             _store = store;
@@ -47,6 +49,7 @@ namespace BZAPI.Websocket
             _avatars = avatars;
             _options = options.Value;
             _bot = bot;
+            _connectionState = connectionState;
             _logger = logger;
         }
 
@@ -68,6 +71,7 @@ namespace BZAPI.Websocket
             // data until it was restarted.
             using var reconnections = client.ReconnectionHappened.Subscribe(info =>
             {
+                _connectionState.MarkConnected();
                 _logger.LogInformation("Websocket connected ({ReconnectionType}); authorising.", info.Type);
                 _bot.OnSocketConnected();
                 SendAuthorization(client);
@@ -75,6 +79,7 @@ namespace BZAPI.Websocket
 
             using var disconnections = client.DisconnectionHappened.Subscribe(info =>
             {
+                _connectionState.MarkDisconnected();
                 _bot.OnSocketDisconnected();
                 _logger.LogWarning(
                     info.Exception,
@@ -87,6 +92,7 @@ namespace BZAPI.Websocket
             {
                 if (message.Text is { Length: > 0 } text)
                 {
+                    _connectionState.MarkMessage();
                     _messages.Writer.TryWrite(text);
                 }
             });
