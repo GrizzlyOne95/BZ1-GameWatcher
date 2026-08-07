@@ -235,7 +235,8 @@ namespace BZAPI.Websocket
             // sanitized regression fixtures exercise the same production normalization path.
             BZ98ProtocolParser.NormalizeLobby(lobby);
 
-            if (lobby.Users is null || lobby.Users.Count == 0)
+            var users = lobby.Users;
+            if (users is null || users.Count == 0)
             {
                 return;
             }
@@ -248,12 +249,12 @@ namespace BZAPI.Websocket
                     _chat.IsObserverUser(lobby.Id, user.Id ?? key) ||
                     (user.IPAddress is not null && _options.HiddenUserIpAddresses.Contains(user.IPAddress)));
 
-            if (lobby.Users.Count == 0)
+            if (users.Count == 0)
             {
                 return;
             }
 
-            foreach (var pair in lobby.Users)
+            foreach (var pair in users)
             {
                 var key = pair.Key;
                 var user = pair.Value;
