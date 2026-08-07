@@ -12,6 +12,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<BattlezoneOptions>(builder.Configuration.GetSection(BattlezoneOptions.SectionName));
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection(SteamOptions.SectionName));
 builder.Services.Configure<LobbyBotOptions>(builder.Configuration.GetSection(LobbyBotOptions.SectionName));
+builder.Services.Configure<ChatObserverOptions>(builder.Configuration.GetSection(ChatObserverOptions.SectionName));
 
 // The production UI is served by this same application, so CORS is normally only needed for local
 // development or an intentionally separate client. Configure allowed origins instead of hard-coding them.
@@ -44,9 +45,11 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILobbyStore, LobbyStore>();
+builder.Services.AddSingleton<IChatStore, ChatStore>();
 builder.Services.AddSingleton<ISteamAvatarProvider, SteamAvatarProvider>();
 builder.Services.AddSingleton<LobbyBotCoordinator>();
 builder.Services.AddHostedService<BZ98LobbyWatcher>();
+builder.Services.AddHostedService<BZ98ChatObserver>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
