@@ -17,6 +17,10 @@ public interface IChatStore
 
     void Add(ChatMessageSnapshot message);
 
+    void SetObserverUserId(int lobbyId, string? userId);
+
+    bool IsObserverUser(int lobbyId, string? userId);
+
     void RemoveLobby(int lobbyId);
 }
 
@@ -28,6 +32,7 @@ public sealed class ChatStore : IChatStore
 {
     private readonly object _sync = new();
     private readonly Dictionary<int, List<ChatMessageSnapshot>> _messages = [];
+    private readonly Dictionary<int, string> _observerUserIds = [];
     private readonly int _maxMessagesPerLobby;
     private readonly int _maxMessageLength;
 
@@ -94,11 +99,40 @@ public sealed class ChatStore : IChatStore
         }
     }
 
+    public void SetObserverUserId(int lobbyId, string? userId)
+    {
+        lock (_sync)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                _observerUserIds.Remove(lobbyId);
+                return;
+            }
+
+            _observerUserIds[lobbyId] = userId.Trim();
+        }
+    }
+
+    public bool IsObserverUser(int lobbyId, string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return false;
+        }
+
+        lock (_sync)
+        {
+            return _observerUserIds.TryGetValue(lobbyId, out var observerId) &&
+                string.Equals(observerId, userId, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
     public void RemoveLobby(int lobbyId)
     {
         lock (_sync)
         {
             _messages.Remove(lobbyId);
+            _observerUserIds.Remove(lobbyId);
         }
     }
 
