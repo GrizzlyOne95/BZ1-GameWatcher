@@ -1,3 +1,4 @@
+import { provideHttpClient } from '@angular/common/http';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { UnitDatabaseComponent } from './unit-database.component';
@@ -9,11 +10,15 @@ describe('UnitDatabaseComponent', () => {
     beforeEach(async () => {
         await TestBed.configureTestingModule({
             imports: [UnitDatabaseComponent],
-            providers: [provideRouter([])]
+            providers: [provideRouter([]), provideHttpClient()]
         }).compileComponents();
         fixture = TestBed.createComponent(UnitDatabaseComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
+    });
+
+    afterEach(() => {
+        fixture.destroy();
     });
 
     it('loads the generated stock catalog', () => {
