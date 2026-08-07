@@ -1,7 +1,7 @@
 /**
  * A lobby exactly as returned by the API.
  *
- * Player IP, WAN and LAN addresses are deliberately absent — the API no longer publishes them.
+ * Player IP, WAN and LAN addresses are deliberately absent — the API never publishes them.
  */
 export interface BZ98Lobby {
     id: number;
@@ -10,6 +10,7 @@ export interface BZ98Lobby {
     isChat: boolean;
     isLocked: boolean;
     isPrivate: boolean;
+    hasPassword: boolean | null;
     host: BZ98User | null;
     memberLimit: number;
     metaData: BZ98MetaData | null;
@@ -18,6 +19,7 @@ export interface BZ98Lobby {
     userCount: number;
     users: Record<string, BZ98User>;
     directJoinUrl: string | null;
+    recentChat: BZ98ChatMessage[];
 }
 
 /** A lobby prepared for display, with users flattened and game-settings data preserved separately. */
@@ -37,12 +39,21 @@ export interface BZ98LobbyView extends Omit<BZ98Lobby, 'users' | 'stats'> {
     stats: BZ98LobbyData | null;
 }
 
+export interface BZ98ChatMessage {
+    author: string | null;
+    speakerId: string | null;
+    text: string;
+    timeUtc: string;
+}
+
 export interface BZ98MetaData {
     gameVersion: string | null;
     gameSettings: string | null;
     gameType: string | null;
     launched: string | null;
+    gameEnded: string | null;
     name: string | null;
+    rawName: string | null;
     nextMid: string | null;
     userCount: string | null;
     userPack: string | null;
@@ -77,19 +88,26 @@ export interface BZ98UserMetaData {
     ready: string | null;
     team: string | null;
     vehicle: string | null;
+    communityPatch: string | null;
+    communityPatchShim: string | null;
 }
 
 export interface BZ98LobbyData {
     mapFile: string | null;
     crc32: string | null;
     mod: string | null;
+    metaDataVersion: number | null;
+    syncJoin: boolean | null;
+    timeLimit: number | null;
+    playerLimit: number | null;
+    killLimit: number | null;
     attributes: BZ98LobbyDataAttributes | null;
 }
 
 export interface BZ98LobbyDataAttributes {
     lives: string | null;
-    satellite: boolean;
-    barracks: boolean;
-    sniper: boolean;
-    splinter: boolean;
+    satellite: boolean | null;
+    barracks: boolean | null;
+    sniper: boolean | null;
+    splinter: boolean | null;
 }
