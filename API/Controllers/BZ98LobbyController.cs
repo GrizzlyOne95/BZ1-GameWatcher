@@ -1,4 +1,7 @@
+using System.Globalization;
+using BZAPI.Models;
 using BZAPI.Models.Responses;
+using BZAPI.Steam;
 using BZAPI.Storage;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,10 +12,12 @@ namespace BZAPI.Controllers
     public class BZ98LobbyController(
         ILobbyStore lobbyStore,
         IChatStore chatStore,
+        ISteamWorkshopProvider workshopProvider,
         ILogger<BZ98LobbyController> logger) : ControllerBase
     {
         private readonly ILobbyStore _lobbyStore = lobbyStore;
         private readonly IChatStore _chatStore = chatStore;
+        private readonly ISteamWorkshopProvider _workshopProvider = workshopProvider;
         private readonly ILogger<BZ98LobbyController> _logger = logger;
 
         /// <summary>
@@ -22,7 +27,7 @@ namespace BZAPI.Controllers
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(IEnumerable<LobbyResponse>), StatusCodes.Status200OK)]
-        public ActionResult<IEnumerable<LobbyResponse>> GetLobbies()
+        public async Task<ActionResult<IEnumerable<LobbyResponse>>> GetLobbies(CancellationToken cancellationToken)
         {
             var snapshot = _lobbyStore.Current;
 
@@ -31,9 +36,13 @@ namespace BZAPI.Controllers
                 snapshot.Lobbies.Count,
                 snapshot.LastUpdatedUtc);
 
-            return Ok(snapshot.Lobbies
-                .Select(lobby => lobby.ToResponse(_chatStore.GetRecent(lobby.Id)))
-                .ToList());
+            var responses = await Task.WhenAll(snapshot.Lobbies.Select(async lobby =>
+            {
+                var workshop = await ResolveWorkshopAsync(lobby, cancellationToken);
+                return lobby.ToResponse(_chatStore.GetRecent(lobby.Id), workshop);
+            }));
+
+            return Ok(responses);
         }
 
         /// <summary>
@@ -43,7 +52,7 @@ namespace BZAPI.Controllers
         [HttpGet("{id:int}")]
         [ProducesResponseType(typeof(LobbyResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<LobbyResponse> GetLobby(int id)
+        public async Task<ActionResult<LobbyResponse>> GetLobby(int id, CancellationToken cancellationToken)
         {
             var snapshot = _lobbyStore.Current;
             var lobby = snapshot.Lobbies.FirstOrDefault(candidate => candidate.Id == id);
@@ -53,7 +62,21 @@ namespace BZAPI.Controllers
                 return NotFound();
             }
 
-            return Ok(lobby.ToResponse(_chatStore.GetRecent(lobby.Id)));
+            var workshop = await ResolveWorkshopAsync(lobby, cancellationToken);
+            return Ok(lobby.ToResponse(_chatStore.GetRecent(lobby.Id), workshop));
+        }
+
+        private Task<SteamWorkshopItem?> ResolveWorkshopAsync(BZ98Lobby lobby, CancellationToken cancellationToken)
+        {
+            var rawMod = lobby.Stats?.Mod?.Trim();
+            if (lobby.IsChat || string.IsNullOrWhiteSpace(rawMod) ||
+                !ulong.TryParse(rawMod, NumberStyles.None, CultureInfo.InvariantCulture, out var publishedFileId) ||
+                publishedFileId == 0)
+            {
+                return Task.FromResult<SteamWorkshopItem?>(null);
+            }
+
+            return _workshopProvider.GetItemAsync(publishedFileId, cancellationToken);
         }
     }
 }

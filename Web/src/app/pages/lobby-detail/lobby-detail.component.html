@@ -72,13 +72,25 @@
             </article>
             <article class="summary-card" *ngIf="!current.isChat">
                 <span>Mod</span>
-                <strong>{{ display(current.stats?.mod) }}</strong>
-                <small>
-                    <ng-container *ngIf="workshopUrl(current.stats?.mod) as workshop; else localMod">
-                        <a [href]="workshop" target="_blank" rel="noopener noreferrer"><fa-icon [icon]="faLink"></fa-icon> Open Workshop item</a>
-                    </ng-container>
-                    <ng-template #localMod>Stock/local when no Workshop ID is reported</ng-template>
-                </small>
+                <ng-container *ngIf="current.workshop as workshop; else rawModSummary">
+                    <strong><a [href]="workshop.workshopUrl" target="_blank" rel="noopener noreferrer">{{ workshop.title }}</a></strong>
+                    <small>
+                        Workshop {{ workshop.publishedFileId }}
+                        <ng-container *ngIf="workshop.creatorProfileUrl"> · <a [href]="workshop.creatorProfileUrl" target="_blank" rel="noopener noreferrer">Creator profile</a></ng-container>
+                    </small>
+                    <a [href]="workshop.workshopUrl" target="_blank" rel="noopener noreferrer" *ngIf="workshop.previewUrl">
+                        <img class="img-fluid rounded mt-2" style="max-height: 120px" [src]="workshop.previewUrl" [alt]="workshop.title + ' Workshop preview'" loading="lazy">
+                    </a>
+                </ng-container>
+                <ng-template #rawModSummary>
+                    <strong>{{ display(current.stats?.mod) }}</strong>
+                    <small>
+                        <ng-container *ngIf="workshopUrl(current.stats?.mod) as workshop; else localMod">
+                            <a [href]="workshop" target="_blank" rel="noopener noreferrer"><fa-icon [icon]="faLink"></fa-icon> Open Workshop item</a>
+                        </ng-container>
+                        <ng-template #localMod>Stock/local when no Workshop ID is reported</ng-template>
+                    </small>
+                </ng-template>
             </article>
         </section>
 
@@ -180,6 +192,13 @@
                 <div><dt>Metadata name</dt><dd>{{ display(current.metaData?.name) }}</dd></div>
                 <div><dt>Game type</dt><dd>{{ display(current.metaData?.gameType) }}</dd></div>
                 <div><dt>Game version</dt><dd>{{ display(current.metaData?.gameVersion) }}</dd></div>
+                <ng-container *ngIf="current.workshop as workshop">
+                    <div><dt>Workshop ID</dt><dd>{{ workshop.publishedFileId }}</dd></div>
+                    <div><dt>Workshop subscriptions</dt><dd>{{ display(workshop.subscriptions) }}</dd></div>
+                    <div><dt>Workshop updated</dt><dd>{{ formatDateTime(workshop.updatedUtc) }}</dd></div>
+                    <div><dt>Workshop creator</dt><dd>{{ display(workshop.creatorSteamId) }}</dd></div>
+                    <div class="wide"><dt>Workshop URL</dt><dd><a [href]="workshop.workshopUrl" target="_blank" rel="noopener noreferrer">{{ workshop.workshopUrl }}</a></dd></div>
+                </ng-container>
                 <div class="wide"><dt>Game settings</dt><dd>{{ display(current.metaData?.gameSettings) }}</dd></div>
                 <div class="wide"><dt>User pack</dt><dd>{{ display(current.metaData?.userPack) }}</dd></div>
             </dl>

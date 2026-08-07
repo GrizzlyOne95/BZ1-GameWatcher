@@ -1,3 +1,4 @@
+using BZAPI.Steam;
 using BZAPI.Storage;
 
 namespace BZAPI.Models.Responses
@@ -9,7 +10,8 @@ namespace BZAPI.Models.Responses
     {
         public static LobbyResponse ToResponse(
             this BZ98Lobby lobby,
-            IReadOnlyList<ChatMessageSnapshot>? recentChat = null) => new()
+            IReadOnlyList<ChatMessageSnapshot>? recentChat = null,
+            SteamWorkshopItem? workshop = null) => new()
         {
             Id = lobby.Id,
             ClientVersion = lobby.ClientVersion,
@@ -25,6 +27,7 @@ namespace BZAPI.Models.Responses
             Host = lobby.Host?.ToResponse(),
             MetaData = lobby.MetaData?.ToResponse(),
             Stats = lobby.Stats?.ToResponse(),
+            Workshop = workshop?.ToResponse(),
             Users = lobby.Users?
                 .Where(pair => pair.Value is not null)
                 .ToDictionary(pair => pair.Key, pair => pair.Value.ToResponse()) ?? [],
@@ -58,6 +61,18 @@ namespace BZAPI.Models.Responses
             Stats = user.Stats?.ToResponse(),
             SteamImgUri = user.SteamImgUri,
             SteamCleanId = user.SteamCleanId
+        };
+
+        private static WorkshopItemResponse ToResponse(this SteamWorkshopItem workshop) => new()
+        {
+            PublishedFileId = workshop.PublishedFileId,
+            Title = workshop.Title,
+            PreviewUrl = workshop.PreviewUrl,
+            CreatorSteamId = workshop.CreatorSteamId,
+            CreatorProfileUrl = workshop.CreatorProfileUrl,
+            WorkshopUrl = workshop.WorkshopUrl,
+            UpdatedUtc = workshop.UpdatedUtc,
+            Subscriptions = workshop.Subscriptions
         };
 
         private static LobbyMetaDataResponse ToResponse(this BZ98MetaData metaData) => new()

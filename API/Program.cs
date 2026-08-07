@@ -50,6 +50,7 @@ builder.Services.AddSingleton<ILobbyStore, LobbyStore>();
 builder.Services.AddSingleton<IChatStore, ChatStore>();
 builder.Services.AddSingleton<IActivityStore, ActivityStore>();
 builder.Services.AddSingleton<ISteamAvatarProvider, SteamAvatarProvider>();
+builder.Services.AddSingleton<ISteamWorkshopProvider, SteamWorkshopProvider>();
 builder.Services.AddSingleton<LobbyBotCoordinator>();
 builder.Services.AddSingleton<LobbyConnectionState>();
 builder.Services.AddHostedService<BZ98LobbyWatcher>();

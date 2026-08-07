@@ -27,8 +27,25 @@ namespace BZAPI.Models.Responses
         public UserResponse? Host { get; init; }
         public LobbyMetaDataResponse? MetaData { get; init; }
         public LobbyStatsResponse? Stats { get; init; }
+        public WorkshopItemResponse? Workshop { get; init; }
         public Dictionary<string, UserResponse> Users { get; init; } = [];
         public IReadOnlyList<ChatMessageResponse> RecentChat { get; init; } = [];
+    }
+
+    /// <summary>
+    /// Public metadata for a Steam Workshop item referenced by a lobby. This is enrichment only;
+    /// a failed Steam lookup leaves this null and never prevents the lobby itself from rendering.
+    /// </summary>
+    public sealed class WorkshopItemResponse
+    {
+        public string PublishedFileId { get; init; } = string.Empty;
+        public string Title { get; init; } = string.Empty;
+        public string? PreviewUrl { get; init; }
+        public string? CreatorSteamId { get; init; }
+        public string? CreatorProfileUrl { get; init; }
+        public string WorkshopUrl { get; init; } = string.Empty;
+        public DateTimeOffset? UpdatedUtc { get; init; }
+        public long? Subscriptions { get; init; }
     }
 
     public sealed class ChatMessageResponse
