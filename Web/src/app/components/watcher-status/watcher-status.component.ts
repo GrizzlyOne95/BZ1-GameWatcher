@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { EMPTY, Subject, catchError, exhaustMap, takeUntil, timer } from 'rxjs';
+import { EMPTY, Subject, catchError, exhaustMap, takeUntil } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { WatcherHealth } from '../../models/watcher-health';
 import { BZ98Service } from '../../services/bz98.service';
+import { visibilityAwareTimer } from '../../services/visibility-polling';
 
 @Component({
     selector: 'app-watcher-status',
@@ -25,7 +26,7 @@ export class WatcherStatusComponent implements OnInit, OnDestroy {
         // component tests that embed the shared nav from acquiring an unexpected health request.
         const initialDelayMs = environment.production ? 0 : 5_000;
 
-        timer(initialDelayMs, 15_000)
+        visibilityAwareTimer(15_000, 60_000, initialDelayMs)
             .pipe(
                 exhaustMap(() => this.bz98Service.getHealth().pipe(
                     catchError((error: unknown) => {
