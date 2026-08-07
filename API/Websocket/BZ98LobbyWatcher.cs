@@ -240,6 +240,16 @@ namespace BZAPI.Websocket
                     continue;
                 }
 
+                // Capture the owner identity before filtering hidden service accounts out of the
+                // public member list. Persistent chat/bridge lobbies are commonly owned by one of
+                // these accounts; dropping it first left the UI with only an opaque ID such as
+                // B1000002. LobbyResponse maps Host through UserResponse, which omits IP/WAN/LAN
+                // fields, so retaining this owner snapshot does not expose the hidden address.
+                if (user.Id is not null && user.Id == lobby.Owner)
+                {
+                    lobby.Host = user;
+                }
+
                 // Service accounts sit in the lounge permanently; hide them from the public list.
                 if (user.IPAddress is not null && _options.HiddenUserIpAddresses.Contains(user.IPAddress))
                 {
@@ -261,13 +271,6 @@ namespace BZAPI.Websocket
                 else
                 {
                     _logger.LogDebug("Ignoring user key {UserKey}: not a parsable Steam ID.", key);
-                }
-
-                // Checked for every user rather than only Steam users — a lobby hosted from GOG
-                // previously ended up with no host recorded at all.
-                if (user.Id is not null && user.Id == lobby.Owner)
-                {
-                    lobby.Host = user;
                 }
             }
         }
