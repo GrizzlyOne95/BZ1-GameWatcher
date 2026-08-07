@@ -1,0 +1,188 @@
+<app-site-nav></app-site-nav>
+
+<div class="container-fluid detail-shell">
+    <a class="back-link" routerLink="/games"><fa-icon [icon]="faArrowLeft"></fa-icon> Back to lobbies</a>
+
+    <div class="alert alert-warning" role="alert" *ngIf="loadFailed">
+        The lobby detail could not be refreshed. Existing data remains visible while the page retries.
+    </div>
+
+    <div class="empty-state" *ngIf="loading && !lobby">
+        Loading lobby details…
+    </div>
+
+    <div class="empty-state" *ngIf="notFound && !lobby">
+        <h2>Lobby no longer listed</h2>
+        <p class="mb-3">Lobby {{ lobbyId }} is not currently reported by the Battlezone lobby service. It may have closed or the game may have ended.</p>
+        <a class="btn btn-primary" routerLink="/games">View current lobbies</a>
+    </div>
+
+    <ng-container *ngIf="lobby as current">
+        <header class="lobby-hero">
+            <div class="lobby-hero-main">
+                <div class="eyebrow">{{ current.isChat ? 'Waiting room' : 'Game lobby' }} · {{ current.id }}</div>
+                <h1>{{ current.isChat ? lobbyDisplayName(current) : display(current.stats?.mapFile) }}</h1>
+                <p class="hero-subtitle">
+                    <ng-container *ngIf="!current.isChat; else chatSubtitle">
+                        {{ gameTypeLabel(current.metaData?.gameType) }} · {{ launchStatus(current) }} · {{ lobbyDisplayName(current) }}
+                    </ng-container>
+                    <ng-template #chatSubtitle>Public Battlezone chat lobby · read-only from the web</ng-template>
+                </p>
+
+                <div class="badge-row">
+                    <span class="status-pill players"><fa-icon [icon]="faUser"></fa-icon>{{ current.userCount }} / {{ current.memberLimit }}</span>
+                    <span class="status-pill" [class.open]="!current.isLocked && !current.isPrivate && !current.hasPassword" [class.locked]="current.isLocked || current.isPrivate || current.hasPassword">
+                        <fa-icon [icon]="current.isLocked || current.isPrivate || current.hasPassword ? faLock : faLockOpen"></fa-icon>
+                        {{ current.hasPassword ? 'Passworded' : (current.isLocked || current.isPrivate ? 'Restricted' : 'Open') }}
+                    </span>
+                    <span class="status-pill neutral" *ngFor="let platform of platformSummary">{{ platform.label }} {{ platform.count }}</span>
+                </div>
+            </div>
+
+            <div class="hero-actions">
+                <button class="btn btn-primary" type="button" *ngIf="canJoin" (click)="joinGame()">
+                    <fa-icon [icon]="faPlay"></fa-icon> Join game
+                </button>
+                <button class="btn btn-outline-light" type="button" (click)="copyLobbyLink()">
+                    <fa-icon [icon]="faCopy"></fa-icon> {{ shareCopied ? 'Copied' : 'Copy lobby link' }}
+                </button>
+            </div>
+        </header>
+
+        <section class="summary-grid">
+            <article class="summary-card">
+                <span>Owner</span>
+                <strong>
+                    <ng-container *ngIf="ownerSteamProfileUrl(current) as ownerProfile; else ownerText">
+                        <a [href]="ownerProfile" target="_blank" rel="noopener noreferrer">{{ ownerDisplayName(current) }}</a>
+                    </ng-container>
+                    <ng-template #ownerText>{{ ownerDisplayName(current) }}</ng-template>
+                </strong>
+                <small>{{ display(current.owner) }}</small>
+            </article>
+            <article class="summary-card">
+                <span>Created</span>
+                <strong>{{ formatDateTime(current.createdTime) }}</strong>
+                <small>Reported by lobby service</small>
+            </article>
+            <article class="summary-card" *ngIf="!current.isChat">
+                <span>Game version</span>
+                <strong>{{ display(current.metaData?.gameVersion) }}</strong>
+                <small>Client/lobby metadata</small>
+            </article>
+            <article class="summary-card" *ngIf="!current.isChat">
+                <span>Mod</span>
+                <strong>{{ display(current.stats?.mod) }}</strong>
+                <small>
+                    <ng-container *ngIf="workshopUrl(current.stats?.mod) as workshop; else localMod">
+                        <a [href]="workshop" target="_blank" rel="noopener noreferrer"><fa-icon [icon]="faLink"></fa-icon> Open Workshop item</a>
+                    </ng-container>
+                    <ng-template #localMod>Stock/local when no Workshop ID is reported</ng-template>
+                </small>
+            </article>
+        </section>
+
+        <section class="panel" *ngIf="!current.isChat">
+            <div class="panel-heading">
+                <div>
+                    <div class="eyebrow">Game configuration</div>
+                    <h2>Rules and map</h2>
+                </div>
+            </div>
+
+            <div class="rule-grid">
+                <div><span>Map file</span><strong>{{ display(current.stats?.mapFile) }}</strong></div>
+                <div><span>CRC32</span><strong>{{ display(current.stats?.crc32) }}</strong></div>
+                <div><span>Player limit</span><strong>{{ display(current.stats?.playerLimit) }}</strong></div>
+                <div><span>Time limit</span><strong>{{ display(current.stats?.timeLimit) }}</strong></div>
+                <div><span>Kill limit</span><strong>{{ display(current.stats?.killLimit) }}</strong></div>
+                <div><span>Lives</span><strong>{{ display(current.stats?.attributes?.lives) }}</strong></div>
+                <div><span>Sync join</span><strong>{{ yesNo(current.stats?.syncJoin) }}</strong></div>
+                <div><span>Satellite</span><strong>{{ yesNo(current.stats?.attributes?.satellite) }}</strong></div>
+                <div><span>Barracks</span><strong>{{ yesNo(current.stats?.attributes?.barracks) }}</strong></div>
+                <div><span>Sniper</span><strong>{{ yesNo(current.stats?.attributes?.sniper) }}</strong></div>
+                <div><span>Splinter</span><strong>{{ yesNo(current.stats?.attributes?.splinter) }}</strong></div>
+                <div><span>Launch state</span><strong>{{ launchStatus(current) }}</strong></div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-heading">
+                <div>
+                    <div class="eyebrow">Roster</div>
+                    <h2>{{ current.isChat ? 'Waiting room users' : 'Players' }}</h2>
+                </div>
+                <span class="count-badge">{{ users.length }}</span>
+            </div>
+
+            <div class="empty-inline" *ngIf="users.length === 0">No public users are currently reported in this lobby.</div>
+
+            <div class="player-grid" *ngIf="users.length > 0">
+                <article class="player-card" *ngFor="let user of users">
+                    <div class="player-avatar" *ngIf="user.steamImgUri; else avatarFallback">
+                        <img [src]="user.steamImgUri" width="54" height="54" alt="Player avatar">
+                    </div>
+                    <ng-template #avatarFallback>
+                        <div class="player-avatar fallback"><fa-icon [icon]="faUser"></fa-icon></div>
+                    </ng-template>
+
+                    <div class="player-copy">
+                        <h3>{{ display(user.name) }}</h3>
+                        <div class="player-platform">{{ userPlatform(user) }}</div>
+                        <dl>
+                            <div><dt>Player ID</dt><dd>{{ display(user.id) }}</dd></div>
+                            <div *ngIf="!current.isChat"><dt>Team</dt><dd>{{ display(user.metaData?.team) }}</dd></div>
+                            <div *ngIf="!current.isChat"><dt>Vehicle</dt><dd>{{ display(user.metaData?.vehicle) }}</dd></div>
+                            <div *ngIf="user.metaData?.communityPatch"><dt>Community patch</dt><dd>{{ display(user.metaData?.communityPatch) }}</dd></div>
+                            <div *ngIf="user.metaData?.communityPatchShim"><dt>Shim</dt><dd>{{ display(user.metaData?.communityPatchShim) }}</dd></div>
+                        </dl>
+                    </div>
+
+                    <a class="steam-profile" *ngIf="userPlatform(user) === 'Steam' && user.steamCleanId" [href]="'https://steamcommunity.com/profiles/' + user.steamCleanId + '/'" target="_blank" rel="noopener noreferrer">Steam</a>
+                </article>
+            </div>
+        </section>
+
+        <section class="panel" *ngIf="current.isChat">
+            <div class="panel-heading">
+                <div>
+                    <div class="eyebrow">Public lobby activity</div>
+                    <h2>Recent chat</h2>
+                </div>
+                <span class="count-badge">{{ current.recentChat?.length || 0 }}</span>
+            </div>
+
+            <p class="readonly-note">Read-only view. Web visitors cannot send messages into Battlezone.</p>
+            <div class="empty-inline" *ngIf="!current.recentChat?.length">No chat has been observed since the watcher joined this lobby.</div>
+            <div class="chat-list" *ngIf="current.recentChat?.length">
+                <article class="chat-message" *ngFor="let message of current.recentChat | slice:-20">
+                    <div class="chat-heading">
+                        <strong>{{ chatAuthor(message) }}</strong>
+                        <time [attr.datetime]="message.timeUtc">{{ formatDateTime(message.timeUtc) }}</time>
+                    </div>
+                    <div>{{ message.text }}</div>
+                </article>
+            </div>
+        </section>
+
+        <details class="technical-panel">
+            <summary>Technical lobby details</summary>
+            <dl class="technical-grid">
+                <div><dt>Lobby ID</dt><dd>{{ current.id }}</dd></div>
+                <div><dt>Client version</dt><dd>{{ display(current.clientVersion) }}</dd></div>
+                <div><dt>Owner ID</dt><dd>{{ display(current.owner) }}</dd></div>
+                <div><dt>Member limit</dt><dd>{{ current.memberLimit }}</dd></div>
+                <div><dt>Reported user count</dt><dd>{{ current.userCount }}</dd></div>
+                <div><dt>Chat lobby</dt><dd>{{ yesNo(current.isChat) }}</dd></div>
+                <div><dt>Locked</dt><dd>{{ yesNo(current.isLocked) }}</dd></div>
+                <div><dt>Private</dt><dd>{{ yesNo(current.isPrivate) }}</dd></div>
+                <div><dt>Passworded</dt><dd>{{ yesNo(current.hasPassword) }}</dd></div>
+                <div><dt>Metadata name</dt><dd>{{ display(current.metaData?.name) }}</dd></div>
+                <div><dt>Game type</dt><dd>{{ display(current.metaData?.gameType) }}</dd></div>
+                <div><dt>Game version</dt><dd>{{ display(current.metaData?.gameVersion) }}</dd></div>
+                <div class="wide"><dt>Game settings</dt><dd>{{ display(current.metaData?.gameSettings) }}</dd></div>
+                <div class="wide"><dt>User pack</dt><dd>{{ display(current.metaData?.userPack) }}</dd></div>
+            </dl>
+        </details>
+    </ng-container>
+</div>
