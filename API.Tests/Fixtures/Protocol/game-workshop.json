@@ -1,0 +1,28 @@
+{
+  "id": 103,
+  "clientVersion": "2.0.185",
+  "createdTime": "2026-08-07T12:10:00Z",
+  "isChat": false,
+  "isLocked": false,
+  "isPrivate": false,
+  "memberLimit": 10,
+  "owner": "S76561198000000003",
+  "userCount": 1,
+  "metaData": {
+    "lobbyId": 103,
+    "gameVersion": "2.2.301",
+    "gameSettings": "1*custom01.bzn*DEADBEEF*2898000000*1*0*0*30*7*10*1*40*0",
+    "gameType": "1",
+    "launched": "0",
+    "name": "~game~public~~Workshop Game",
+    "userCount": "1"
+  },
+  "users": {
+    "S76561198000000003": {
+      "authType": "steam",
+      "id": "S76561198000000003",
+      "lobby": 103,
+      "name": "Workshop Host"
+    }
+  }
+}
