@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { EMPTY, Subject, catchError, exhaustMap, takeUntil, timer } from 'rxjs';
+import { EMPTY, Subject, catchError, exhaustMap, takeUntil } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SiteNavComponent } from '../../components/site-nav/site-nav.component';
 import { ActivityRange, ActivityResponse, ActivitySample } from '../../models/activity';
 import { BZ98Service } from '../../services/bz98.service';
+import { visibilityAwareTimer } from '../../services/visibility-polling';
 
 @Component({
     selector: 'app-activity',
@@ -34,7 +35,8 @@ export class ActivityComponent implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
-        timer(0, Math.max(60_000, environment.lobbyRefreshIntervalMs))
+        const activeIntervalMs = Math.max(60_000, environment.lobbyRefreshIntervalMs);
+        visibilityAwareTimer(activeIntervalMs, 5 * 60_000)
             .pipe(
                 exhaustMap(() => this.bz98Service.getActivity(this.selectedRange).pipe(
                     catchError((error: unknown) => {
