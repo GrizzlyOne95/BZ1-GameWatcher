@@ -6,9 +6,25 @@
             <h1 class="display-5 mb-1">Battlezone 98 Redux Lobbies</h1>
             <p class="text-secondary mb-0">Live game, rules, lobby, and player information reported by the public lobby service.</p>
         </div>
-        <div class="refresh-status" *ngIf="lastRefreshedAt">
-            <span class="live-dot"></span>
-            Updated {{ lastRefreshedAt | date:'mediumTime' }}
+
+        <div class="d-flex flex-column align-items-md-end gap-2">
+            <div class="refresh-status" *ngIf="lastRefreshedAt">
+                <span class="live-dot"></span>
+                Updated {{ formatTime(lastRefreshedAt) }}
+            </div>
+
+            <button class="btn btn-sm btn-outline-light" type="button" (click)="toggleTimeZonePicker()" [attr.aria-expanded]="timeZonePickerOpen">
+                {{ timeZoneButtonLabel }}
+            </button>
+
+            <div class="border rounded p-2 bg-dark text-start" *ngIf="timeZonePickerOpen">
+                <label class="form-label small mb-1" for="lobby-time-zone">Display all lobby times in</label>
+                <select id="lobby-time-zone" class="form-select form-select-sm" [value]="selectedTimeZone" (change)="selectTimeZone($event)">
+                    <option value="">Browser local — {{ browserTimeZone }}</option>
+                    <option *ngFor="let timeZone of timeZoneOptions" [value]="timeZone">{{ timeZone }}</option>
+                </select>
+                <div class="small text-secondary mt-1">Showing {{ activeTimeZoneLabel }}. This preference is saved on this device.</div>
+            </div>
         </div>
     </div>
 
@@ -63,23 +79,25 @@
                         </div>
                         <div class="summary-item">
                             <span>Mod / CRC</span>
-                            <strong>
-                                <ng-container *ngIf="workshopUrl(lobby.stats?.mod) as url; else summaryModText">
-                                    <a class="link-info text-decoration-none" [href]="url" target="_blank" rel="noopener noreferrer" title="Open this mod in the Steam Workshop">
-                                        {{ display(lobby.stats?.mod) }}
-                                    </a>
-                                </ng-container>
-                                <ng-template #summaryModText>{{ display(lobby.stats?.mod) }}</ng-template>
-                                · {{ display(lobby.stats?.crc32) }}
-                            </strong>
+                            <strong>{{ display(lobby.stats?.mod) }} · {{ display(lobby.stats?.crc32) }}</strong>
+                            <ng-container *ngIf="workshopUrl(lobby.stats?.mod) as modUrl">
+                                <a class="link-info text-decoration-none d-inline-block mt-1" [href]="modUrl" target="_blank" rel="noopener noreferrer">Link to mod</a>
+                            </ng-container>
                         </div>
                         <div class="summary-item">
                             <span>Created</span>
-                            <strong>{{ lobby.createdTime | date:'medium' }}</strong>
+                            <strong>{{ formatDateTime(lobby.createdTime) }}</strong>
                         </div>
                         <div class="summary-item">
                             <span>Owner</span>
-                            <strong class="text-break">{{ display(lobby.owner) }}</strong>
+                            <strong class="text-break">
+                                <ng-container *ngIf="ownerSteamProfileUrl(lobby) as ownerProfileUrl; else summaryOwnerText">
+                                    <a class="link-info text-decoration-none" [href]="ownerProfileUrl" target="_blank" rel="noopener noreferrer" title="Open lobby owner's Steam profile">
+                                        {{ ownerDisplayName(lobby) }}
+                                    </a>
+                                </ng-container>
+                                <ng-template #summaryOwnerText>{{ ownerDisplayName(lobby) }}</ng-template>
+                            </strong>
                         </div>
                     </div>
 
@@ -125,6 +143,13 @@
                     <div>
                         <div class="eyebrow">Chat lobby {{ chatLobby.id }}</div>
                         <h3>{{ lobbyDisplayName(chatLobby) }}</h3>
+                        <div class="small text-secondary mt-1">
+                            Owner:
+                            <ng-container *ngIf="ownerSteamProfileUrl(chatLobby) as chatOwnerProfileUrl; else chatOwnerText">
+                                <a class="link-info text-decoration-none" [href]="chatOwnerProfileUrl" target="_blank" rel="noopener noreferrer">{{ ownerDisplayName(chatLobby) }}</a>
+                            </ng-container>
+                            <ng-template #chatOwnerText>{{ ownerDisplayName(chatLobby) }}</ng-template>
+                        </div>
                     </div>
                     <span class="count-pill small">{{ chatLobby.userCount }}</span>
                 </div>
@@ -278,8 +303,16 @@
         <dl class="detail-grid">
             <div><dt>Lobby ID</dt><dd>{{ lobby.id }}</dd></div>
             <div><dt>Client version</dt><dd>{{ display(lobby.clientVersion) }}</dd></div>
-            <div><dt>Created</dt><dd>{{ lobby.createdTime | date:'medium' }}</dd></div>
-            <div><dt>Owner ID</dt><dd>{{ display(lobby.owner) }}</dd></div>
+            <div><dt>Created</dt><dd>{{ formatDateTime(lobby.createdTime) }}</dd></div>
+            <div>
+                <dt>Owner</dt>
+                <dd>
+                    <ng-container *ngIf="ownerSteamProfileUrl(lobby) as detailOwnerProfileUrl; else detailOwnerText">
+                        <a class="link-info text-decoration-none" [href]="detailOwnerProfileUrl" target="_blank" rel="noopener noreferrer">{{ ownerDisplayName(lobby) }}</a>
+                    </ng-container>
+                    <ng-template #detailOwnerText>{{ ownerDisplayName(lobby) }}</ng-template>
+                </dd>
+            </div>
             <div><dt>Reported users</dt><dd>{{ lobby.userCount }}</dd></div>
             <div><dt>Member limit</dt><dd>{{ lobby.memberLimit }}</dd></div>
             <div><dt>Chat lobby</dt><dd>{{ yesNo(lobby.isChat) }}</dd></div>
@@ -289,7 +322,7 @@
         </dl>
     </div>
 
-    <div class="detail-section">
+    <div class="detail-section" *ngIf="!lobby.isChat">
         <h5>Lobby metadata</h5>
         <dl class="detail-grid">
             <div><dt>Game version</dt><dd>{{ display(lobby.metaData?.gameVersion) }}</dd></div>
@@ -329,12 +362,10 @@
         <div>
             <dt>Mod</dt>
             <dd>
-                <ng-container *ngIf="workshopUrl(stats.mod) as url; else detailModText">
-                    <a class="link-info text-decoration-none" [href]="url" target="_blank" rel="noopener noreferrer" title="Open this mod in the Steam Workshop">
-                        {{ display(stats.mod) }}
-                    </a>
+                {{ display(stats.mod) }}
+                <ng-container *ngIf="workshopUrl(stats.mod) as detailModUrl">
+                    · <a class="link-info text-decoration-none" [href]="detailModUrl" target="_blank" rel="noopener noreferrer">Link to mod</a>
                 </ng-container>
-                <ng-template #detailModText>{{ display(stats.mod) }}</ng-template>
             </dd>
         </div>
         <div><dt>Lives</dt><dd>{{ display(stats.attributes?.lives) }}</dd></div>

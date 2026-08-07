@@ -12,6 +12,34 @@ import { buildSteamJoinUrl } from '../../services/steam-join';
 
 /** Number of '*'-separated fields a game settings string must have to be parsable. */
 const GAME_SETTINGS_FIELD_COUNT = 9;
+const TIME_ZONE_STORAGE_KEY = 'bz98-display-time-zone';
+const FALLBACK_TIME_ZONES = [
+    'Pacific/Honolulu',
+    'America/Anchorage',
+    'America/Los_Angeles',
+    'America/Denver',
+    'America/Chicago',
+    'America/New_York',
+    'America/Halifax',
+    'America/Sao_Paulo',
+    'Atlantic/Reykjavik',
+    'Europe/London',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'Europe/Helsinki',
+    'Europe/Moscow',
+    'Africa/Johannesburg',
+    'Asia/Dubai',
+    'Asia/Kolkata',
+    'Asia/Bangkok',
+    'Asia/Singapore',
+    'Asia/Shanghai',
+    'Asia/Tokyo',
+    'Australia/Perth',
+    'Australia/Adelaide',
+    'Australia/Sydney',
+    'Pacific/Auckland'
+] as const;
 
 @Component({
     selector: 'app-games',
@@ -42,6 +70,12 @@ export class GamesComponent implements OnInit, OnDestroy {
 
     /** Local timestamp of the most recent successful browser refresh. */
     lastRefreshedAt: Date | null = null;
+
+    /** Browser-local zone remains the default until a visitor explicitly chooses another one. */
+    readonly browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Browser local time';
+    readonly timeZoneOptions = this.getSupportedTimeZones();
+    selectedTimeZone = this.getStoredTimeZone();
+    timeZonePickerOpen = false;
 
     constructor(private readonly bz98Service: BZ98Service) {
     }
@@ -82,6 +116,82 @@ export class GamesComponent implements OnInit, OnDestroy {
         await this.copyToClipboard(shareText);
 
         window.location.href = environment.communitySiteUrl;
+    }
+
+    toggleTimeZonePicker(): void {
+        this.timeZonePickerOpen = !this.timeZonePickerOpen;
+    }
+
+    selectTimeZone(event: Event): void {
+        const requestedTimeZone = (event.currentTarget as HTMLSelectElement | null)?.value ?? '';
+        this.selectedTimeZone = this.timeZoneOptions.includes(requestedTimeZone) ? requestedTimeZone : '';
+
+        try {
+            if (this.selectedTimeZone) {
+                localStorage.setItem(TIME_ZONE_STORAGE_KEY, this.selectedTimeZone);
+            } else {
+                localStorage.removeItem(TIME_ZONE_STORAGE_KEY);
+            }
+        } catch {
+            // Private browsing and hardened browsers may disallow storage. The current selection
+            // still remains active for the life of this page.
+        }
+    }
+
+    get timeZoneButtonLabel(): string {
+        return this.selectedTimeZone
+            ? this.selectedTimeZone.replaceAll('_', ' ')
+            : 'Add time zone';
+    }
+
+    get activeTimeZoneLabel(): string {
+        return this.selectedTimeZone
+            ? this.selectedTimeZone.replaceAll('_', ' ')
+            : `Local (${this.browserTimeZone.replaceAll('_', ' ')})`;
+    }
+
+    formatDateTime(value: string | Date | null | undefined): string {
+        return this.formatTimestamp(value, true);
+    }
+
+    formatTime(value: string | Date | null | undefined): string {
+        return this.formatTimestamp(value, false);
+    }
+
+    ownerUser(lobby: BZ98LobbyView): BZ98User | null {
+        const candidates = [lobby.host, ...lobby.users]
+            .filter((user): user is BZ98User => Boolean(user));
+
+        if (lobby.owner) {
+            const exactOwner = candidates.find(user => user.id === lobby.owner);
+            if (exactOwner) {
+                return exactOwner;
+            }
+        }
+
+        // The API's host snapshot is the most useful fallback when a lobby's public user list is
+        // empty, which is common for the persistent chat/bridge lobbies.
+        return lobby.host ?? null;
+    }
+
+    ownerDisplayName(lobby: BZ98LobbyView): string {
+        const owner = this.ownerUser(lobby);
+        const name = owner?.name?.trim();
+
+        if (name) {
+            return name;
+        }
+
+        if (owner?.steamCleanId) {
+            return 'Steam profile';
+        }
+
+        return this.display(lobby.owner);
+    }
+
+    ownerSteamProfileUrl(lobby: BZ98LobbyView): string | null {
+        const steamId = this.ownerUser(lobby)?.steamCleanId?.trim();
+        return steamId ? `https://steamcommunity.com/profiles/${steamId}/` : null;
     }
 
     trackLobby(_index: number, lobby: BZ98LobbyView): number {
@@ -261,6 +371,73 @@ export class GamesComponent implements OnInit, OnDestroy {
                 splinter: Boolean(Number(parts[7]))
             }
         };
+    }
+
+    private getSupportedTimeZones(): string[] {
+        const timeZoneIntl = Intl as typeof Intl & {
+            supportedValuesOf?: (key: 'timeZone') => string[];
+        };
+
+        try {
+            const supported = timeZoneIntl.supportedValuesOf?.('timeZone');
+            if (supported?.length) {
+                return supported;
+            }
+        } catch {
+            // Fall through to the representative list for older browsers.
+        }
+
+        return [...FALLBACK_TIME_ZONES];
+    }
+
+    private getStoredTimeZone(): string {
+        try {
+            const stored = localStorage.getItem(TIME_ZONE_STORAGE_KEY) ?? '';
+            return this.timeZoneOptions.includes(stored) ? stored : '';
+        } catch {
+            return '';
+        }
+    }
+
+    private formatTimestamp(value: string | Date | null | undefined, includeDate: boolean): string {
+        if (!value) {
+            return 'Not reported';
+        }
+
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            return this.display(typeof value === 'string' ? value : null);
+        }
+
+        const options: Intl.DateTimeFormatOptions = includeDate
+            ? {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            }
+            : {
+                hour: 'numeric',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+            };
+
+        if (this.selectedTimeZone) {
+            options.timeZone = this.selectedTimeZone;
+        }
+
+        try {
+            return new Intl.DateTimeFormat(undefined, options).format(date);
+        } catch {
+            // A browser can retain a zone name after its time-zone database changes. Falling back
+            // to local time is safer than leaving all timestamps blank.
+            delete options.timeZone;
+            return new Intl.DateTimeFormat(undefined, options).format(date);
+        }
     }
 
     private async copyToClipboard(text: string): Promise<void> {

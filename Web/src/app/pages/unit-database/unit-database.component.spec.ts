@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { UnitDatabaseComponent } from './unit-database.component';
 
 describe('UnitDatabaseComponent', () => {
@@ -6,7 +7,10 @@ describe('UnitDatabaseComponent', () => {
     let component: UnitDatabaseComponent;
 
     beforeEach(async () => {
-        await TestBed.configureTestingModule({ imports: [UnitDatabaseComponent] }).compileComponents();
+        await TestBed.configureTestingModule({
+            imports: [UnitDatabaseComponent],
+            providers: [provideRouter([])]
+        }).compileComponents();
         fixture = TestBed.createComponent(UnitDatabaseComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();

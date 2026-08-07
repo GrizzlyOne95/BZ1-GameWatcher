@@ -7,6 +7,7 @@ import { BZ98Lobby, BZ98User } from '../../models/bz98-lobby-info';
 import { GamesComponent } from './games.component';
 
 const LOBBIES_URL = `${environment.apiUrl}BZ98Lobby`;
+const TIME_ZONE_STORAGE_KEY = 'bz98-display-time-zone';
 
 function user(overrides: Partial<BZ98User>): BZ98User {
     return {
@@ -56,6 +57,8 @@ describe('GamesComponent', () => {
     let httpMock: HttpTestingController;
 
     beforeEach(async () => {
+        localStorage.removeItem(TIME_ZONE_STORAGE_KEY);
+
         await TestBed.configureTestingModule({
             imports: [GamesComponent],
             providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()]
@@ -161,6 +164,26 @@ describe('GamesComponent', () => {
         expect(fixture.componentInstance.workshopUrl(null)).toBeNull();
     });
 
+    it('shows an explicit mod link for a Workshop lobby', fakeAsync(() => {
+        load([
+            lobby({
+                stats: {
+                    mapFile: 'cell.bzn',
+                    crc32: '20530842',
+                    mod: '2299335165',
+                    attributes: null
+                }
+            })
+        ]);
+
+        const modLink = [...fixture.nativeElement.querySelectorAll('a')]
+            .find((anchor: HTMLAnchorElement) => anchor.textContent?.trim() === 'Link to mod') as HTMLAnchorElement | undefined;
+
+        expect(modLink?.href).toContain('steamcommunity.com/sharedfiles/filedetails/?id=2299335165');
+
+        teardown();
+    }));
+
     it('shows a friendly name while preserving a known vehicle ODF code', () => {
         expect(fixture.componentInstance.vehicleLabel('bvrmpa')).toBe('Red Devil (bvrmpa)');
         expect(fixture.componentInstance.stockVehicle('BVRMPA.ODF')?.maxHealth).toBe(1800);
@@ -196,6 +219,74 @@ describe('GamesComponent', () => {
 
         teardown();
     }));
+
+    it('uses the host snapshot to show a chat-lobby owner name and hides game metadata', fakeAsync(() => {
+        const bridgeOwner = user({
+            id: 'B1000002',
+            name: 'Bridge Keeper',
+            isSteam: true,
+            steamCleanId: '76561198000000001'
+        });
+
+        load([
+            lobby({
+                id: 1004,
+                isChat: true,
+                owner: 'B1000002',
+                host: bridgeOwner,
+                metaData: {
+                    gameVersion: '2.2.301',
+                    gameType: '1',
+                    launched: null,
+                    name: 'default',
+                    nextMid: null,
+                    userCount: '1',
+                    userPack: '!BRIDGE',
+                    gameSettings: '*'
+                }
+            })
+        ]);
+
+        const component = fixture.componentInstance;
+        const chatLobby = component.BZ98ChatLobbies[0];
+        const pageText = fixture.nativeElement.textContent as string;
+        const ownerLink = fixture.nativeElement.querySelector('article.waiting-card a[href*="steamcommunity.com/profiles"]') as HTMLAnchorElement | null;
+
+        expect(component.ownerDisplayName(chatLobby)).toBe('Bridge Keeper');
+        expect(component.ownerSteamProfileUrl(chatLobby)).toContain('76561198000000001');
+        expect(pageText).toContain('Owner:');
+        expect(pageText).toContain('Bridge Keeper');
+        expect(pageText).not.toContain('Lobby metadata');
+        expect(ownerLink?.textContent?.trim()).toBe('Bridge Keeper');
+
+        teardown();
+    }));
+
+    it('formats timestamps in the selected time zone and persists the choice', () => {
+        const component = fixture.componentInstance;
+        const zone = component.timeZoneOptions.includes('America/New_York')
+            ? 'America/New_York'
+            : component.timeZoneOptions[0];
+        const select = document.createElement('select');
+        select.add(new Option(zone, zone));
+        select.value = zone;
+
+        component.selectTimeZone({ currentTarget: select } as unknown as Event);
+
+        const expected = new Intl.DateTimeFormat(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZoneName: 'short',
+            timeZone: zone
+        }).format(new Date('2026-01-01T17:00:00Z'));
+
+        expect(component.formatDateTime('2026-01-01T17:00:00Z')).toBe(expected);
+        expect(localStorage.getItem(TIME_ZONE_STORAGE_KEY)).toBe(zone);
+    });
 
     it('keeps polling after a failed request', fakeAsync(() => {
         fixture.detectChanges();
