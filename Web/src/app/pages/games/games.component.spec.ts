@@ -40,6 +40,7 @@ function lobby(overrides: Partial<BZ98Lobby>): BZ98Lobby {
         isChat: false,
         isLocked: false,
         isPrivate: false,
+        hasPassword: null,
         host: null,
         memberLimit: 10,
         metaData: null,
@@ -48,6 +49,7 @@ function lobby(overrides: Partial<BZ98Lobby>): BZ98Lobby {
         userCount: 0,
         users: {},
         directJoinUrl: null,
+        recentChat: [],
         ...overrides
     };
 }
@@ -118,14 +120,13 @@ describe('GamesComponent', () => {
             lobby({ metaData: { gameSettings: '*' } as never, stats: null })
         ]);
 
-        // Previously this produced a stats object full of undefined fields.
         expect(fixture.componentInstance.BZ98Lobbies[0].parsedStats).toBeNull();
         expect(fixture.componentInstance.BZ98Lobbies[0].stats).toBeNull();
 
         teardown();
     }));
 
-    it('parses a full game settings string while preserving API stats', fakeAsync(() => {
+    it('parses all documented game settings fields while preserving API stats', fakeAsync(() => {
         const apiStats = {
             mapFile: 'api-map.bzn',
             crc32: 'API',
@@ -135,23 +136,52 @@ describe('GamesComponent', () => {
 
         load([
             lobby({
-                metaData: { gameSettings: 'x*bunker.bzn*ABC123*stock*1*0*1*0*5' } as never,
+                metaData: {
+                    gameSettings: '78*bunker.bzn*ABC123*2299335165*1*0*1*180*5*8*1*25*0*'
+                } as never,
                 stats: apiStats
             })
         ]);
 
         const view = fixture.componentInstance.BZ98Lobbies[0];
 
+        expect(view.parsedStats?.metaDataVersion).toBe(78);
         expect(view.parsedStats?.mapFile).toBe('bunker.bzn');
         expect(view.parsedStats?.crc32).toBe('ABC123');
-        expect(view.parsedStats?.attributes?.satellite).toBeTrue();
-        expect(view.parsedStats?.attributes?.barracks).toBeFalse();
+        expect(view.parsedStats?.mod).toBe('2299335165');
+        expect(view.parsedStats?.syncJoin).toBeTrue();
+        expect(view.parsedStats?.timeLimit).toBe(180);
+        expect(view.parsedStats?.playerLimit).toBe(8);
+        expect(view.parsedStats?.killLimit).toBe(25);
+        expect(view.parsedStats?.attributes?.satellite).toBeFalse();
+        expect(view.parsedStats?.attributes?.barracks).toBeTrue();
         expect(view.parsedStats?.attributes?.lives).toBe('5');
+        expect(view.parsedStats?.attributes?.sniper).toBeTrue();
+        expect(view.parsedStats?.attributes?.splinter).toBeFalse();
         expect(view.apiStats).toEqual(apiStats);
         expect(view.stats).toBe(view.parsedStats);
 
         teardown();
     }));
+
+    it('uses authType as the authoritative platform classification', () => {
+        const component = fixture.componentInstance;
+
+        expect(component.userPlatform(user({ authType: 'web', isGOG: true }))).toBe('Web');
+        expect(component.userPlatform(user({ authType: 'gog', isSteam: true }))).toBe('GOG');
+        expect(component.userPlatform(user({ authType: 'steam', isSteam: false }))).toBe('Steam');
+        expect(component.userPlatform(user({ authType: 'custom' }))).toBe('custom');
+    });
+
+    it('does not silently convert unknown booleans or launch state to false', () => {
+        const component = fixture.componentInstance;
+        const unknownLobby = lobby({ metaData: { launched: null } as never });
+        const endedLobby = lobby({ metaData: { launched: '1', gameEnded: '1' } as never });
+
+        expect(component.yesNo(null)).toBe('Not reported');
+        expect(component.launchStatus(unknownLobby as never)).toBe('Not reported');
+        expect(component.launchStatus(endedLobby as never)).toBe('Ended');
+    });
 
     it('builds a Steam Workshop link for numeric mod IDs', () => {
         expect(fixture.componentInstance.workshopUrl('2299335165'))
@@ -220,12 +250,13 @@ describe('GamesComponent', () => {
         teardown();
     }));
 
-    it('uses the host snapshot to show a chat-lobby owner name and hides game metadata', fakeAsync(() => {
+    it('shows a Web chat-lobby owner, recent read-only chat, and no game-only metadata', fakeAsync(() => {
         const bridgeOwner = user({
+            authType: 'web',
             id: 'B1000002',
-            name: 'Bridge Keeper',
-            isSteam: true,
-            steamCleanId: '76561198000000001'
+            name: '!BRIDGE',
+            isGOG: false,
+            isSteam: false
         });
 
         load([
@@ -234,6 +265,14 @@ describe('GamesComponent', () => {
                 isChat: true,
                 owner: 'B1000002',
                 host: bridgeOwner,
+                userCount: 1,
+                users: { B1000002: bridgeOwner },
+                recentChat: [{
+                    author: 'PilotOne',
+                    speakerId: 'S123',
+                    text: 'Anyone up for a game?',
+                    timeUtc: '2026-08-07T02:00:00Z'
+                }],
                 metaData: {
                     gameVersion: '2.2.301',
                     gameType: '1',
@@ -250,14 +289,27 @@ describe('GamesComponent', () => {
         const component = fixture.componentInstance;
         const chatLobby = component.BZ98ChatLobbies[0];
         const pageText = fixture.nativeElement.textContent as string;
-        const ownerLink = fixture.nativeElement.querySelector('article.waiting-card a[href*="steamcommunity.com/profiles"]') as HTMLAnchorElement | null;
 
-        expect(component.ownerDisplayName(chatLobby)).toBe('Bridge Keeper');
-        expect(component.ownerSteamProfileUrl(chatLobby)).toContain('76561198000000001');
+        expect(component.ownerDisplayName(chatLobby)).toBe('!BRIDGE');
+        expect(component.userPlatform(bridgeOwner)).toBe('Web');
         expect(pageText).toContain('Owner:');
-        expect(pageText).toContain('Bridge Keeper');
+        expect(pageText).toContain('Recent chat');
+        expect(pageText).toContain('PilotOne');
+        expect(pageText).toContain('Anyone up for a game?');
+        expect(pageText).toContain('Web visitors cannot send messages into Battlezone');
         expect(pageText).not.toContain('Lobby metadata');
-        expect(ownerLink?.textContent?.trim()).toBe('Bridge Keeper');
+
+        teardown();
+    }));
+
+    it('shows password status without exposing a password value', fakeAsync(() => {
+        load([
+            lobby({ id: 42, hasPassword: true })
+        ]);
+
+        const pageText = fixture.nativeElement.textContent as string;
+        expect(pageText).toContain('Passworded');
+        expect(pageText).not.toContain('super-secret-password');
 
         teardown();
     }));
@@ -296,8 +348,6 @@ describe('GamesComponent', () => {
 
         expect(fixture.componentInstance.loadFailed).toBeTrue();
 
-        // The previous implementation lost its subscription on the first error and never
-        // recovered; the next tick must still issue a request.
         tick(environment.lobbyRefreshIntervalMs);
         httpMock.expectOne(LOBBIES_URL).flush([lobby({ id: 7 })]);
         fixture.detectChanges();
