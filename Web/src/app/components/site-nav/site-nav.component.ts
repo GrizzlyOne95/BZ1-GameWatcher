@@ -4,6 +4,7 @@ import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 import { faYoutube } from '@fortawesome/free-brands-svg-icons';
 import { faGlobe } from '@fortawesome/free-solid-svg-icons';
 import { environment } from '../../../environments/environment';
+import { WatcherStatusComponent } from '../watcher-status/watcher-status.component';
 
 /**
  * Site header. Previously this markup was duplicated in every page template, with the active
@@ -11,7 +12,7 @@ import { environment } from '../../../environments/environment';
  */
 @Component({
     selector: 'app-site-nav',
-    imports: [FontAwesomeModule, RouterLink, RouterLinkActive],
+    imports: [FontAwesomeModule, RouterLink, RouterLinkActive, WatcherStatusComponent],
     templateUrl: './site-nav.component.html'
 })
 export class SiteNavComponent {
