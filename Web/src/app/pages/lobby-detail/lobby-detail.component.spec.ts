@@ -157,7 +157,7 @@ describe('LobbyDetailComponent', () => {
         expect(text).toContain('Web 1');
         expect(text).toContain('Community Map Pack');
         expect(text).toContain('Workshop 2299335165');
-        expect(text).toContain('1,234');
+        expect(text).toContain('1234');
         expect(text).toContain('Join game');
         expect(preview?.src).toContain('workshop-preview.jpg');
         expect(fixture.componentInstance.ownerDisplayName(fixture.componentInstance.lobby!)).toBe('HostPilot');
