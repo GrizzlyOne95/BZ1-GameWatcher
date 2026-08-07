@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { AboutComponent } from './pages/about/about.component';
 import { ActivityComponent } from './pages/activity/activity.component';
 import { GamesComponent } from './pages/games/games.component';
 import { JoinGameComponent } from './pages/join-game/join-game.component';
@@ -17,6 +18,10 @@ export const routes: Routes = [
     {
         path: 'units',
         component: UnitDatabaseComponent
+    },
+    {
+        path: 'about',
+        component: AboutComponent
     },
     {
         path: 'unit-database',
