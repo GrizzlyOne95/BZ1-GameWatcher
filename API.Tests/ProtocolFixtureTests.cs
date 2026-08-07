@@ -173,9 +173,10 @@ public sealed class ProtocolFixtureTests
             lobby,
             (_, user) => user.Id == "B9000001");
 
+        var users = lobby.Users!;
         Assert.Equal(1, removed);
-        Assert.Single(lobby.Users!);
-        Assert.True(lobby.Users.ContainsKey("B1000002"));
+        Assert.Single(users);
+        Assert.True(users.ContainsKey("B1000002"));
         Assert.Equal(1, lobby.UserCount);
         Assert.Equal("1", lobby.MetaData?.UserCount);
     }
