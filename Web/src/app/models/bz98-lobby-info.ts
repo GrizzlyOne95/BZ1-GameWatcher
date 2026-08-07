@@ -10,7 +10,7 @@ export interface BZ98Lobby {
     isChat: boolean;
     isLocked: boolean;
     isPrivate: boolean;
-    hasPassword: boolean | null;
+    hasPassword?: boolean | null;
     host: BZ98User | null;
     memberLimit: number;
     metaData: BZ98MetaData | null;
@@ -19,12 +19,13 @@ export interface BZ98Lobby {
     userCount: number;
     users: Record<string, BZ98User>;
     directJoinUrl: string | null;
-    recentChat: BZ98ChatMessage[];
+    recentChat?: BZ98ChatMessage[];
 }
 
 /** A lobby prepared for display, with users flattened and game-settings data preserved separately. */
-export interface BZ98LobbyView extends Omit<BZ98Lobby, 'users' | 'stats'> {
+export interface BZ98LobbyView extends Omit<BZ98Lobby, 'users' | 'stats' | 'recentChat'> {
     users: BZ98User[];
+    recentChat: BZ98ChatMessage[];
     oddTeamUsers: BZ98User[];
     evenTeamUsers: BZ98User[];
     unassignedTeamUsers: BZ98User[];
@@ -51,9 +52,9 @@ export interface BZ98MetaData {
     gameSettings: string | null;
     gameType: string | null;
     launched: string | null;
-    gameEnded: string | null;
+    gameEnded?: string | null;
     name: string | null;
-    rawName: string | null;
+    rawName?: string | null;
     nextMid: string | null;
     userCount: string | null;
     userPack: string | null;
@@ -88,19 +89,19 @@ export interface BZ98UserMetaData {
     ready: string | null;
     team: string | null;
     vehicle: string | null;
-    communityPatch: string | null;
-    communityPatchShim: string | null;
+    communityPatch?: string | null;
+    communityPatchShim?: string | null;
 }
 
 export interface BZ98LobbyData {
     mapFile: string | null;
     crc32: string | null;
     mod: string | null;
-    metaDataVersion: number | null;
-    syncJoin: boolean | null;
-    timeLimit: number | null;
-    playerLimit: number | null;
-    killLimit: number | null;
+    metaDataVersion?: number | null;
+    syncJoin?: boolean | null;
+    timeLimit?: number | null;
+    playerLimit?: number | null;
+    killLimit?: number | null;
     attributes: BZ98LobbyDataAttributes | null;
 }
 
