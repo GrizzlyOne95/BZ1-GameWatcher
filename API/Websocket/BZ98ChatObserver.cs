@@ -186,12 +186,14 @@ public sealed class BZ98ChatObserver : BackgroundService
                 {
                     var envelope = JObject.Parse(text);
                     var type = envelope["type"]?.ToString();
-                    var data = envelope["data"] as JObject;
+                    // The public service has emitted both `data` and `content` envelopes over its
+                    // lifetime. Accept both, matching the older LobbyMonitor compatibility logic.
+                    var payload = envelope["data"] as JObject ?? envelope["content"] as JObject;
 
                     switch (type)
                     {
                         case "OnAuthorization":
-                            if (ReadBoolean(data?["success"]) is false)
+                            if (ReadBoolean(payload?["success"]) is false)
                             {
                                 _logger.LogWarning(
                                     "Read-only chat observer authorization was rejected for lobby {LobbyId}.",
@@ -208,10 +210,21 @@ public sealed class BZ98ChatObserver : BackgroundService
                             });
                             break;
 
-                        case "OnChatMessage":
-                            if (data is not null)
+                        case "OnLobbyJoined":
+                            if (ReadBoolean(payload?["success"]) is false)
                             {
-                                StoreMessage(lobbyId, data);
+                                _logger.LogWarning(
+                                    "Read-only chat observer could not join {LobbyName} ({LobbyId}): {Reason}",
+                                    lobbyName,
+                                    lobbyId,
+                                    payload?["reason"]?.ToString());
+                            }
+                            break;
+
+                        case "OnChatMessage":
+                            if (payload is not null)
+                            {
+                                StoreMessage(lobbyId, payload);
                             }
                             break;
                     }
