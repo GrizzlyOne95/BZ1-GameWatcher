@@ -44,18 +44,24 @@
             </div>
 
             <article class="game-card" *ngFor="let lobby of BZ98Lobbies; index as i; trackBy: trackLobby">
-                <div class="game-hero" style="background-image: url('/poster.jpg')">
+                <div class="game-hero" [style.backgroundImage]="'url(' + (lobby.map?.imageUrl || lobby.workshop?.previewUrl || '/poster.jpg') + ')'">
                     <div class="game-hero-overlay"></div>
                     <div class="game-hero-content">
                         <div>
-                            <div class="eyebrow">Game {{ i + 1 }} · Lobby {{ lobby.id }}</div>
-                            <h3>{{ display(lobby.stats?.mapFile) }}</h3>
+                            <div class="eyebrow">{{ mapModeLabel(lobby) }} · Game {{ i + 1 }} · Lobby {{ lobby.id }}</div>
+                            <h3>{{ mapTitle(lobby) }}</h3>
                             <div class="hero-subtitle">
-                                {{ gameTypeLabel(lobby.metaData?.gameType) }} · {{ launchStatus(lobby) }} · {{ lobbyDisplayName(lobby) }}
+                                {{ launchStatus(lobby) }} · {{ lobbyDisplayName(lobby) }}
+                            </div>
+                            <div class="small text-secondary mt-1">
+                                {{ display(lobby.stats?.mapFile) }}
+                                <ng-container *ngIf="lobby.map?.isStock"> · Stock map</ng-container>
+                                <ng-container *ngIf="lobby.map?.customTypeName"> · {{ lobby.map?.customTypeName }}</ng-container>
                             </div>
                         </div>
 
                         <div class="hero-actions">
+                            <span class="status-badge">{{ launchStatus(lobby) }}</span>
                             <span class="status-badge players"><fa-icon [icon]="faUser"></fa-icon>{{ lobby.userCount }} / {{ lobby.memberLimit }}</span>
                             <span class="status-badge" [class.locked]="lobby.isLocked || lobby.isPrivate || lobby.hasPassword" [class.open]="!lobby.isLocked && !lobby.isPrivate && !lobby.hasPassword">
                                 <fa-icon [icon]="lobby.isLocked || lobby.isPrivate || lobby.hasPassword ? faLock : faLockOpen"></fa-icon>
@@ -63,6 +69,9 @@
                             </span>
                             <a class="btn btn-outline-info action-button" href="/lobby/{{ lobby.id }}">
                                 <fa-icon [icon]="faLink"></fa-icon> Details
+                            </a>
+                            <a *ngIf="lobby.workshop?.workshopUrl as workshopLink" class="btn btn-outline-light action-button" [href]="workshopLink" target="_blank" rel="noopener noreferrer">
+                                Mod ↗
                             </a>
                             <button *ngIf="!lobby.isLocked && !lobby.isPrivate" (click)="joinGame(lobby)" class="btn btn-primary action-button" type="button">
                                 <img src="steam-icon.png" width="20" height="20" alt=""> Join
@@ -82,10 +91,21 @@
                         </div>
                         <div class="summary-item">
                             <span>Mod / CRC</span>
-                            <strong>{{ display(lobby.stats?.mod) }} · {{ display(lobby.stats?.crc32) }}</strong>
-                            <ng-container *ngIf="workshopUrl(lobby.stats?.mod) as modUrl">
-                                <a class="link-info text-decoration-none d-inline-block mt-1" [href]="modUrl" target="_blank" rel="noopener noreferrer">Link to mod</a>
+                            <strong>{{ lobby.workshop?.title || display(lobby.stats?.mod) }}</strong>
+                            <div class="small text-secondary mt-1" *ngIf="lobby.workshop?.title && lobby.stats?.mod">
+                                {{ lobby.stats?.mod }} · CRC {{ display(lobby.stats?.crc32) }}
+                            </div>
+                            <div class="small text-secondary mt-1" *ngIf="!lobby.workshop?.title">
+                                CRC {{ display(lobby.stats?.crc32) }}
+                            </div>
+                            <ng-container *ngIf="lobby.workshop?.workshopUrl as enrichedModUrl; else fallbackModLink">
+                                <a class="link-info text-decoration-none d-inline-block mt-1" [href]="enrichedModUrl" target="_blank" rel="noopener noreferrer">Steam Workshop</a>
                             </ng-container>
+                            <ng-template #fallbackModLink>
+                                <ng-container *ngIf="workshopUrl(lobby.stats?.mod) as modUrl">
+                                    <a class="link-info text-decoration-none d-inline-block mt-1" [href]="modUrl" target="_blank" rel="noopener noreferrer">Link to mod</a>
+                                </ng-container>
+                            </ng-template>
                         </div>
                         <div class="summary-item">
                             <span>Created</span>
@@ -103,6 +123,24 @@
                             </strong>
                         </div>
                     </div>
+
+                    <section class="detail-panel mb-3" *ngIf="lobby.map as map">
+                        <div class="d-flex flex-column flex-lg-row align-items-lg-start justify-content-between gap-3">
+                            <div>
+                                <div class="eyebrow mb-1">Map metadata</div>
+                                <h5 class="mt-0 mb-1">{{ mapTitle(lobby) }}</h5>
+                                <p class="text-secondary mb-0" *ngIf="map.description">{{ map.description }}</p>
+                            </div>
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="rule-chip" [class.enabled]="map.isStock">{{ map.isStock ? 'Stock' : 'Custom' }}</span>
+                                <span class="rule-chip" *ngIf="map.modeLabel"><b>Mode</b> {{ map.modeLabel }}</span>
+                                <span class="rule-chip" *ngIf="map.typeLabel"><b>Type</b> {{ map.typeLabel }}</span>
+                                <span class="rule-chip" *ngIf="map.minPlayers !== null || map.maxPlayers !== null">
+                                    <b>Players</b> {{ display(map.minPlayers) }}–{{ display(map.maxPlayers) }}
+                                </span>
+                            </div>
+                        </div>
+                    </section>
 
                     <div class="rules-strip">
                         <span class="rule-chip"><b>Lives</b> {{ display(lobby.stats?.attributes?.lives) }}</span>
