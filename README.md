@@ -1,6 +1,6 @@
 # BZ1 Game Watcher
 
-Live lobby list for **Battlezone 98 Redux**, running at https://bz1-gamewatcher.onrender.com/
+Live lobby list for **Battlezone 98 Redux**, running at [https://bz1-gamewatcher.onrender.com/](https://bz1-gamewatcher.tail373def.ts.net/games)
 
 The site shows the games currently open, who is in them, recent read-only public waiting-room chat,
 privacy-safe multiplayer activity history, recognized map information, and lets you jump straight
