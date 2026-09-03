@@ -15,6 +15,20 @@ export interface ActivitySummary {
     historicalSampleCount: number;
 }
 
+export interface LobbyActivityEvent {
+    sequence: number;
+    timeUtc: string;
+    lobbyId: number;
+    type: string;
+    lobbyName: string | null;
+    mapFile: string | null;
+    mod: string | null;
+    fromCount: number | null;
+    toCount: number | null;
+    fromValue: string | null;
+    toValue: string | null;
+}
+
 export interface ActivityResponse {
     range: ActivityRange;
     requestedSinceUtc: string;
@@ -23,7 +37,12 @@ export interface ActivityResponse {
     lobbyDataUpdatedUtc: string | null;
     historyStorage: 'memory' | 'file' | string;
     durableHistory: boolean;
+    eventHistoryStartedUtc: string | null;
+    lastEventUtc: string | null;
+    eventHistoryStorage: 'memory' | 'file' | string;
+    durableEventHistory: boolean;
     current: ActivitySample | null;
     summary: ActivitySummary;
     samples: ActivitySample[];
+    recentEvents: LobbyActivityEvent[];
 }
