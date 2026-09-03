@@ -6,10 +6,24 @@ using BZAPI.Steam;
 using BZAPI.Storage;
 using BZAPI.Websocket;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Extensions.Hosting.WindowsServices;
 
 const string CorsPolicyName = "AllowGameWatcherClients";
 
-var builder = WebApplication.CreateBuilder(args);
+// Under the Windows Service Control Manager the process starts with its working directory set to
+// %WINDIR%\System32, so the default content root would resolve appsettings.json and wwwroot against
+// the wrong directory. Overriding it only when actually running as a service keeps `dotnet run`
+// using the project directory during development.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = WindowsServiceHelpers.IsWindowsService() ? AppContext.BaseDirectory : default
+});
+
+// No-op unless the process really was launched by the SCM, so this is safe to leave enabled for
+// console runs and non-Windows hosts. Registers the Windows service lifetime (clean SCM-driven
+// start/stop) and routes logs to the Windows Event Log for administrators to inspect.
+builder.Services.AddWindowsService(options => options.ServiceName = "BZ1GameWatcher");
 
 builder.Services.Configure<BattlezoneOptions>(builder.Configuration.GetSection(BattlezoneOptions.SectionName));
 builder.Services.Configure<SteamOptions>(builder.Configuration.GetSection(SteamOptions.SectionName));
@@ -72,7 +86,30 @@ builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
+// Recorded before any request is served so an administrator can confirm from the Event Log which
+// build started, where it is running from, and what it is listening on.
+app.Logger.LogInformation(
+    "BZ1 Game Watcher starting. Environment={Environment}, WindowsService={IsWindowsService}, ContentRoot={ContentRoot}.",
+    app.Environment.EnvironmentName,
+    WindowsServiceHelpers.IsWindowsService(),
+    app.Environment.ContentRootPath);
+
 app.UseForwardedHeaders();
+
+// Lobby data is live and per-request, and none of it should be sniffed as anything other than the
+// declared content type. Applied ahead of the static-file and endpoint middleware so it covers
+// error responses too.
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        context.Response.Headers.CacheControl = "no-store";
+    }
+
+    await next();
+});
 
 if (app.Environment.IsDevelopment())
 {
