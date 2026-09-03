@@ -5,6 +5,7 @@ using BZAPI.Models;
 using BZAPI.Storage;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Xunit;
 
 namespace API.Tests;
 
