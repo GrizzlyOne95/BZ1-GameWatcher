@@ -17,6 +17,10 @@ function activityResponse(overrides: Partial<ActivityResponse> = {}): ActivityRe
         lobbyDataUpdatedUtc: '2026-08-06T01:00:30Z',
         historyStorage: 'memory',
         durableHistory: false,
+        eventHistoryStartedUtc: '2026-08-06T00:15:00Z',
+        lastEventUtc: '2026-08-06T00:45:00Z',
+        eventHistoryStorage: 'memory',
+        durableEventHistory: false,
         current: {
             timeUtc: '2026-08-06T01:00:30Z',
             playersOnline: 3,
@@ -44,6 +48,34 @@ function activityResponse(overrides: Partial<ActivityResponse> = {}): ActivityRe
                 activeGames: 3,
                 gamesInProgress: 2,
                 waitingRoomUsers: 4
+            }
+        ],
+        recentEvents: [
+            {
+                sequence: 2,
+                timeUtc: '2026-08-06T00:45:00Z',
+                lobbyId: 42,
+                type: 'GameLaunched',
+                lobbyName: 'MPI',
+                mapFile: 'cell.bzn',
+                mod: 'stock',
+                fromCount: null,
+                toCount: null,
+                fromValue: null,
+                toValue: null
+            },
+            {
+                sequence: 1,
+                timeUtc: '2026-08-06T00:30:00Z',
+                lobbyId: 42,
+                type: 'PlayerCountChanged',
+                lobbyName: 'MPI',
+                mapFile: 'cell.bzn',
+                mod: 'stock',
+                fromCount: 1,
+                toCount: 2,
+                fromValue: null,
+                toValue: null
             }
         ],
         ...overrides
@@ -78,7 +110,7 @@ describe('ActivityComponent', () => {
         httpMock.verify();
     }
 
-    it('renders current activity, storage state, and summary metrics', fakeAsync(() => {
+    it('renders current activity, storage state, summary metrics, and recent transitions', fakeAsync(() => {
         load();
 
         const text = fixture.nativeElement.textContent as string;
@@ -86,18 +118,28 @@ describe('ActivityComponent', () => {
         expect(text).toContain('Players online');
         expect(text).toContain('Peak players');
         expect(text).toContain('Average players');
-        expect(text).toContain('History is not currently durable.');
-        expect(text).toContain('Samples are process-local');
+        expect(text).toContain('Some history is not currently durable.');
+        expect(text).toContain('Recent lobby activity');
+        expect(text).toContain('Game launched');
+        expect(text).toContain('Players 1 → 2');
+        expect(text).toContain('MPI · cell.bzn · Lobby 42');
         expect(exportLink).not.toBeNull();
         expect(fixture.componentInstance.playerPoints.length).toBeGreaterThan(0);
 
         teardown();
     }));
 
-    it('explains file-backed history that is not on durable storage', fakeAsync(() => {
-        load(activityResponse({ historyStorage: 'file', durableHistory: false }));
+    it('shows durable event storage independently from aggregate sample storage', fakeAsync(() => {
+        load(activityResponse({
+            historyStorage: 'memory',
+            durableHistory: false,
+            eventHistoryStorage: 'file',
+            durableEventHistory: true
+        }));
 
-        expect(fixture.nativeElement.textContent).toContain('Samples are written to a local file');
+        const text = fixture.nativeElement.textContent as string;
+        expect(text).toContain('Samples: memory');
+        expect(text).toContain('Events: Durable file');
 
         teardown();
     }));
@@ -120,6 +162,14 @@ describe('ActivityComponent', () => {
         load(activityResponse({ samples: [activityResponse().samples[0]] }));
 
         expect(fixture.nativeElement.textContent).toContain('Activity history is warming up.');
+
+        teardown();
+    }));
+
+    it('shows an explicit baseline message when no lobby transitions have been observed', fakeAsync(() => {
+        load(activityResponse({ recentEvents: [] }));
+
+        expect(fixture.nativeElement.textContent).toContain('Existing lobbies at watcher startup establish a baseline');
 
         teardown();
     }));

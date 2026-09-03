@@ -6,7 +6,7 @@
             <div class="eyebrow">Multiplayer history</div>
             <h1 class="display-5 mb-1">BZ98 Activity</h1>
             <p class="text-secondary mb-0">
-                Privacy-safe aggregate activity from game lobbies and public waiting rooms. No player identities, chat text, or network addresses are stored here.
+                Privacy-safe aggregate activity and lobby-state transitions. No player identities, chat text, or network addresses are stored here.
             </p>
         </div>
 
@@ -31,14 +31,10 @@
         Activity history could not be refreshed. Existing data remains visible while the page retries.
     </div>
 
-    <div class="alert alert-secondary history-note" role="status" *ngIf="activity && !activity.durableHistory">
-        <strong>History is not currently durable.</strong>
-        <ng-container *ngIf="activity.historyStorage === 'file'; else memoryHistory">
-            Samples are written to a local file, but the host filesystem is not declared persistent and can still reset on restart or redeploy.
-        </ng-container>
-        <ng-template #memoryHistory>
-            Samples are process-local and can reset when the hosted service restarts or is redeployed.
-        </ng-template>
+    <div class="alert alert-secondary history-note" role="status" *ngIf="activity && (!activity.durableHistory || !activity.durableEventHistory)">
+        <strong>Some history is not currently durable.</strong>
+        Aggregate samples use {{ activity?.historyStorage || 'memory' }} storage and lobby events use {{ activity?.eventHistoryStorage || 'memory' }} storage.
+        A host restart or redeploy can reset any history that is not backed by declared persistent storage.
     </div>
 
     <div class="d-flex justify-content-end mb-3" *ngIf="activity">
@@ -136,10 +132,50 @@
             </ng-template>
         </section>
 
+        <section class="event-card">
+            <div class="event-heading d-flex flex-column flex-md-row justify-content-between gap-2">
+                <div>
+                    <div class="eyebrow">State transitions</div>
+                    <h2>Recent lobby activity</h2>
+                    <p class="text-secondary mb-0">Lobby-level changes only. Player identities are intentionally not retained.</p>
+                </div>
+                <div class="event-storage text-md-end">
+                    <strong>{{ (data.recentEvents || []).length }}</strong>
+                    <span>events shown</span>
+                    <small>{{ data.durableEventHistory ? 'Durable ' + data.eventHistoryStorage : data.eventHistoryStorage }}</small>
+                </div>
+            </div>
+
+            <div class="event-list" *ngIf="(data.recentEvents || []).length > 0; else noRecentEvents">
+                <article class="event-row" *ngFor="let activityEvent of data.recentEvents">
+                    <span class="event-marker" [ngClass]="activityEventClass(activityEvent)" aria-hidden="true"></span>
+                    <div class="event-copy">
+                        <div class="event-title-row">
+                            <strong>{{ activityEventTitle(activityEvent) }}</strong>
+                            <time [attr.datetime]="activityEvent.timeUtc" [title]="formatDateTime(activityEvent.timeUtc)">
+                                {{ formatAge(activityEvent.timeUtc) }}
+                            </time>
+                        </div>
+                        <div class="event-context">{{ activityEventContext(activityEvent) }}</div>
+                    </div>
+                </article>
+            </div>
+
+            <ng-template #noRecentEvents>
+                <div class="empty-state compact">
+                    No lobby-state transitions have been observed in this range yet. Existing lobbies at watcher startup establish a baseline and are not falsely reported as newly opened.
+                </div>
+            </ng-template>
+        </section>
+
         <section class="coverage-card">
             <div>
-                <span>History collection began</span>
+                <span>Aggregate history began</span>
                 <strong>{{ formatDateTime(data.historyStartedUtc) }}</strong>
+            </div>
+            <div>
+                <span>Lobby event history began</span>
+                <strong>{{ formatDateTime(data.eventHistoryStartedUtc) }}</strong>
             </div>
             <div>
                 <span>Requested range begins</span>
@@ -147,10 +183,10 @@
             </div>
             <div>
                 <span>Storage</span>
-                <strong>{{ data.durableHistory ? 'Durable ' + data.historyStorage : data.historyStorage }}</strong>
+                <strong>Samples: {{ data.durableHistory ? 'Durable ' + data.historyStorage : data.historyStorage }} · Events: {{ data.durableEventHistory ? 'Durable ' + data.eventHistoryStorage : data.eventHistoryStorage }}</strong>
             </div>
             <p class="mb-0 text-secondary">
-                Player counts use non-chat game participants, so persistent Web bridge accounts do not inflate the primary player-activity metric.
+                Player counts use non-chat game participants, so persistent Web bridge accounts do not inflate the primary player-activity metric. The event journal records only public lobby state and aggregate counts.
             </p>
         </section>
     </ng-container>

@@ -3,7 +3,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { EMPTY, Subject, catchError, exhaustMap, takeUntil } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { SiteNavComponent } from '../../components/site-nav/site-nav.component';
-import { ActivityRange, ActivityResponse, ActivitySample } from '../../models/activity';
+import { ActivityRange, ActivityResponse, ActivitySample, LobbyActivityEvent } from '../../models/activity';
 import { BZ98Service } from '../../services/bz98.service';
 import { visibilityAwareTimer } from '../../services/visibility-polling';
 
@@ -126,14 +126,85 @@ export class ActivityComponent implements OnInit, OnDestroy {
             return 'Waiting for lobby data';
         }
 
-        const ageSeconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
+        const timestamp = new Date(value).getTime();
+        if (Number.isNaN(timestamp)) {
+            return value;
+        }
+
+        const ageSeconds = Math.max(0, Math.round((Date.now() - timestamp) / 1000));
         if (ageSeconds < 60) {
             return `${ageSeconds}s ago`;
         }
         if (ageSeconds < 3600) {
             return `${Math.floor(ageSeconds / 60)}m ago`;
         }
-        return `${Math.floor(ageSeconds / 3600)}h ago`;
+        if (ageSeconds < 86400) {
+            return `${Math.floor(ageSeconds / 3600)}h ago`;
+        }
+        return `${Math.floor(ageSeconds / 86400)}d ago`;
+    }
+
+    activityEventTitle(activityEvent: LobbyActivityEvent): string {
+        switch (activityEvent.type) {
+            case 'LobbyOpened':
+                return 'Lobby opened';
+            case 'LobbyClosed':
+                return 'Lobby closed';
+            case 'GameLaunched':
+                return 'Game launched';
+            case 'GameEnded':
+                return 'Game ended';
+            case 'MapChanged':
+                return `Map changed${activityEvent.fromValue || activityEvent.toValue
+                    ? `: ${activityEvent.fromValue || 'unknown'} → ${activityEvent.toValue || 'unknown'}`
+                    : ''}`;
+            case 'PlayerCountChanged':
+                return `Players ${activityEvent.fromCount ?? '?'} → ${activityEvent.toCount ?? '?'}`;
+            case 'LobbyLocked':
+                return 'Lobby locked';
+            case 'LobbyUnlocked':
+                return 'Lobby unlocked';
+            case 'LobbyMadePrivate':
+                return 'Lobby made private';
+            case 'LobbyMadePublic':
+                return 'Lobby made public';
+            default:
+                return activityEvent.type;
+        }
+    }
+
+    activityEventContext(activityEvent: LobbyActivityEvent): string {
+        const context: string[] = [];
+        const lobbyName = activityEvent.lobbyName?.trim();
+        const mapFile = activityEvent.mapFile?.trim();
+
+        if (lobbyName && lobbyName.toLowerCase() !== `lobby ${activityEvent.lobbyId}`.toLowerCase()) {
+            context.push(lobbyName);
+        }
+        if (mapFile) {
+            context.push(mapFile);
+        }
+        context.push(`Lobby ${activityEvent.lobbyId}`);
+
+        return context.join(' · ');
+    }
+
+    activityEventClass(activityEvent: LobbyActivityEvent): string {
+        switch (activityEvent.type) {
+            case 'GameLaunched':
+            case 'LobbyOpened':
+            case 'LobbyUnlocked':
+            case 'LobbyMadePublic':
+                return 'positive';
+            case 'GameEnded':
+            case 'LobbyClosed':
+                return 'ended';
+            case 'LobbyLocked':
+            case 'LobbyMadePrivate':
+                return 'restricted';
+            default:
+                return 'changed';
+        }
     }
 
     private chartPoints(samples: ActivitySample[], selector: (sample: ActivitySample) => number): string {

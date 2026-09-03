@@ -51,11 +51,16 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILobbyStore, LobbyStore>();
 builder.Services.AddSingleton<IChatStore, ChatStore>();
 builder.Services.AddSingleton<IActivityStore, ActivityStore>();
+builder.Services.AddSingleton<IActivityEventStore, ActivityEventStore>();
 builder.Services.AddSingleton<ISteamAvatarProvider, SteamAvatarProvider>();
 builder.Services.AddSingleton<ISteamWorkshopProvider, SteamWorkshopProvider>();
 builder.Services.AddSingleton<IMapMetadataProvider, MapMetadataProvider>();
 builder.Services.AddSingleton<LobbyBotCoordinator>();
 builder.Services.AddSingleton<LobbyConnectionState>();
+
+// Subscribe before the websocket watcher starts publishing snapshots so the first authoritative
+// snapshot can establish the transition journal's baseline without manufacturing "opened" events.
+builder.Services.AddHostedService<LobbyEventTracker>();
 builder.Services.AddHostedService<BZ98LobbyWatcher>();
 builder.Services.AddHostedService<BZ98ChatObserver>();
 builder.Services.AddHostedService<ActivitySampler>();
@@ -112,12 +117,13 @@ app.UseCors(CorsPolicyName);
 
 app.MapControllers();
 
-// Render uses this path for deploy and runtime health checks. Lobby data can legitimately still be
-// unchanged for a long time, so the websocket connection state is reported separately from the
-// timestamp of the most recent lobby-list mutation.
+// The self-hosted deployment uses this path for deployment/runtime checks. Lobby data can
+// legitimately remain unchanged for a long time, so connection state is reported separately from
+// the timestamp of the most recent lobby-list mutation.
 app.MapGet("/api/health", (
     ILobbyStore store,
     IActivityStore activity,
+    IActivityEventStore activityEvents,
     LobbyConnectionState lobbyConnection,
     LobbyBotCoordinator bot) =>
 {
@@ -133,6 +139,10 @@ app.MapGet("/api/health", (
         activityLastSampleUtc = activity.LastSampleUtc,
         activityStorage = activity.StorageKind,
         activityDurable = activity.IsDurable,
+        lobbyEventHistoryStartedUtc = activityEvents.FirstEventUtc,
+        lobbyEventLastUtc = activityEvents.LastEventUtc,
+        lobbyEventStorage = activityEvents.StorageKind,
+        lobbyEventDurable = activityEvents.IsDurable,
         lobbyBot = bot.Status
     });
 });

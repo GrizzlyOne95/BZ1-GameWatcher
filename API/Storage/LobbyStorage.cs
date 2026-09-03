@@ -19,6 +19,12 @@ namespace BZAPI.Storage
         /// </summary>
         LobbySnapshot Current { get; }
 
+        /// <summary>
+        /// Raised synchronously after a complete immutable snapshot has been published. Consumers
+        /// must keep handlers lightweight and must never mutate either snapshot.
+        /// </summary>
+        event Action<LobbySnapshot, LobbySnapshot>? SnapshotChanged;
+
         void Replace(IEnumerable<BZ98Lobby> lobbies);
 
         void AddOrUpdate(BZ98Lobby lobby);
@@ -45,22 +51,32 @@ namespace BZAPI.Storage
 
         public LobbySnapshot Current => Volatile.Read(ref _current);
 
+        public event Action<LobbySnapshot, LobbySnapshot>? SnapshotChanged;
+
         public void Replace(IEnumerable<BZ98Lobby> lobbies)
         {
             ArgumentNullException.ThrowIfNull(lobbies);
 
+            LobbySnapshot previous;
+            LobbySnapshot current;
             lock (_writeLock)
             {
-                Publish(lobbies.ToList());
+                previous = _current;
+                current = Publish(lobbies.ToList());
             }
+
+            SnapshotChanged?.Invoke(previous, current);
         }
 
         public void AddOrUpdate(BZ98Lobby lobby)
         {
             ArgumentNullException.ThrowIfNull(lobby);
 
+            LobbySnapshot previous;
+            LobbySnapshot current;
             lock (_writeLock)
             {
+                previous = _current;
                 var updated = _current.Lobbies.ToList();
                 var index = updated.FindIndex(l => l.Id == lobby.Id);
 
@@ -73,12 +89,16 @@ namespace BZAPI.Storage
                     updated.Add(lobby);
                 }
 
-                Publish(updated);
+                current = Publish(updated);
             }
+
+            SnapshotChanged?.Invoke(previous, current);
         }
 
         public void Remove(int lobbyId)
         {
+            LobbySnapshot previous;
+            LobbySnapshot current;
             lock (_writeLock)
             {
                 var updated = _current.Lobbies.Where(l => l.Id != lobbyId).ToList();
@@ -88,11 +108,18 @@ namespace BZAPI.Storage
                     return;
                 }
 
-                Publish(updated);
+                previous = _current;
+                current = Publish(updated);
             }
+
+            SnapshotChanged?.Invoke(previous, current);
         }
 
-        private void Publish(List<BZ98Lobby> lobbies) =>
-            Volatile.Write(ref _current, new LobbySnapshot(lobbies, DateTimeOffset.UtcNow));
+        private LobbySnapshot Publish(List<BZ98Lobby> lobbies)
+        {
+            var snapshot = new LobbySnapshot(lobbies, DateTimeOffset.UtcNow);
+            Volatile.Write(ref _current, snapshot);
+            return snapshot;
+        }
     }
 }
