@@ -6,13 +6,17 @@ import { EMPTY, Subject, catchError, exhaustMap, takeUntil } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { StockVehicleDefinition, findStockVehicle } from '../../data/stock-vehicles';
 import { SiteNavComponent } from '../../components/site-nav/site-nav.component';
-import { BZ98ChatMessage, BZ98Lobby, BZ98LobbyData, BZ98LobbyView, BZ98User } from '../../models/bz98-lobby-info';
+import { BZ98ChatMessage, BZ98Lobby, BZ98LobbyView, BZ98User } from '../../models/bz98-lobby-info';
 import { BZ98Service } from '../../services/bz98.service';
 import { buildSteamJoinUrl } from '../../services/steam-join';
 import { visibilityAwareTimer } from '../../services/visibility-polling';
 
-/** Minimum fields needed to decode the original core portion of the '*' settings tuple. */
-const GAME_SETTINGS_MIN_FIELD_COUNT = 9;
+export interface PlayerSettingDifference {
+    label: string;
+    player: string;
+    lobby: string;
+}
+
 const TIME_ZONE_STORAGE_KEY = 'bz98-display-time-zone';
 const FALLBACK_TIME_ZONES = [
     'Pacific/Honolulu',
@@ -315,6 +319,63 @@ export class GamesComponent implements OnInit, OnDestroy {
         return Boolean(user.id && (user.id === lobby.owner || user.id === lobby.host?.id));
     }
 
+    /** Render the retained host snapshot only when that host is absent from the public roster. */
+    showHostSnapshot(lobby: BZ98LobbyView): boolean {
+        const host = lobby.host;
+        if (!host) {
+            return false;
+        }
+
+        return !lobby.users.some(user => this.sameUser(user, host));
+    }
+
+    /**
+     * Player ready strings can legitimately disagree with lobby settings while state is changing.
+     * Show only those differences instead of repeating the entire decoded settings table.
+     */
+    playerSettingDifferences(lobby: BZ98LobbyView, user: BZ98User): PlayerSettingDifference[] {
+        const player = user.stats;
+        if (!player) {
+            return [];
+        }
+
+        const lobbyStats = lobby.stats;
+        const differences: PlayerSettingDifference[] = [];
+        const add = (
+            label: string,
+            playerValue: string | number | boolean | null | undefined,
+            lobbyValue: string | number | boolean | null | undefined
+        ): void => {
+            const normalizedPlayer = playerValue ?? null;
+            const normalizedLobby = lobbyValue ?? null;
+            if (normalizedPlayer === normalizedLobby) {
+                return;
+            }
+
+            differences.push({
+                label,
+                player: this.formatSettingValue(playerValue),
+                lobby: this.formatSettingValue(lobbyValue)
+            });
+        };
+
+        add('Metadata version', player.metaDataVersion, lobbyStats?.metaDataVersion);
+        add('Map file', player.mapFile, lobbyStats?.mapFile);
+        add('CRC32', player.crc32, lobbyStats?.crc32);
+        add('Mod', player.mod, lobbyStats?.mod);
+        add('Sync join', player.syncJoin, lobbyStats?.syncJoin);
+        add('Time limit', player.timeLimit, lobbyStats?.timeLimit);
+        add('Player limit', player.playerLimit, lobbyStats?.playerLimit);
+        add('Kill limit', player.killLimit, lobbyStats?.killLimit);
+        add('Lives', player.attributes?.lives, lobbyStats?.attributes?.lives);
+        add('Satellite', player.attributes?.satellite, lobbyStats?.attributes?.satellite);
+        add('Barracks', player.attributes?.barracks, lobbyStats?.attributes?.barracks);
+        add('Sniper', player.attributes?.sniper, lobbyStats?.attributes?.sniper);
+        add('Splinter', player.attributes?.splinter, lobbyStats?.attributes?.splinter);
+
+        return differences;
+    }
+
     /** The upstream authType field is authoritative; ID prefixes are only enrichment hints. */
     userPlatform(user: BZ98User): string {
         switch (user.authType?.trim().toLowerCase()) {
@@ -379,79 +440,30 @@ export class GamesComponent implements OnInit, OnDestroy {
             }
         }
 
-        const parsedStats = lobby.isChat ? null : this.parseGameSettings(lobby.metaData?.gameSettings);
-
         return {
             ...lobby,
             recentChat: Array.isArray(lobby.recentChat) ? lobby.recentChat : [],
             users,
             oddTeamUsers,
             evenTeamUsers,
-            unassignedTeamUsers,
-            apiStats: lobby.stats,
-            parsedStats,
-            stats: parsedStats ?? lobby.stats
+            unassignedTeamUsers
         };
     }
 
-    /**
-     * Decode the public 13-field BZ98 game-settings tuple. Older/partial tuples still expose the
-     * fields they contain; omitted values stay null rather than becoming false or zero.
-     */
-    private parseGameSettings(settings: string | null | undefined): BZ98LobbyData | null {
-        if (!settings) {
-            return null;
+    private sameUser(left: BZ98User, right: BZ98User): boolean {
+        if (left.id && right.id) {
+            return left.id === right.id;
         }
 
-        const parts = settings.split('*');
-
-        if (parts.length < GAME_SETTINGS_MIN_FIELD_COUNT) {
-            return null;
+        if (left.steamCleanId && right.steamCleanId) {
+            return left.steamCleanId === right.steamCleanId;
         }
 
-        return {
-            mapFile: this.part(parts, 1),
-            crc32: this.part(parts, 2),
-            mod: this.part(parts, 3),
-            metaDataVersion: this.integerPart(parts, 0),
-            syncJoin: this.booleanPart(parts, 4),
-            timeLimit: this.integerPart(parts, 7),
-            playerLimit: this.integerPart(parts, 9),
-            killLimit: this.integerPart(parts, 11),
-            attributes: {
-                lives: this.part(parts, 8),
-                satellite: this.booleanPart(parts, 5),
-                barracks: this.booleanPart(parts, 6),
-                sniper: this.booleanPart(parts, 10),
-                splinter: this.booleanPart(parts, 12)
-            }
-        };
+        return false;
     }
 
-    private part(parts: string[], index: number): string | null {
-        const value = parts[index]?.trim();
-        return value ? value : null;
-    }
-
-    private integerPart(parts: string[], index: number): number | null {
-        const value = this.part(parts, index);
-        if (value === null) {
-            return null;
-        }
-
-        const parsed = Number.parseInt(value, 10);
-        return Number.isFinite(parsed) ? parsed : null;
-    }
-
-    private booleanPart(parts: string[], index: number): boolean | null {
-        switch (this.part(parts, index)) {
-            case '0':
-                return false;
-            case '1':
-                return true;
-            default:
-                return null;
-        }
+    private formatSettingValue(value: string | number | boolean | null | undefined): string {
+        return typeof value === 'boolean' ? this.yesNo(value) : this.display(value);
     }
 
     private getSupportedTimeZones(): string[] {
