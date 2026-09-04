@@ -24,22 +24,13 @@ export interface BZ98Lobby {
     recentChat?: BZ98ChatMessage[];
 }
 
-/** A lobby prepared for display, with users flattened and game-settings data preserved separately. */
-export interface BZ98LobbyView extends Omit<BZ98Lobby, 'users' | 'stats' | 'recentChat'> {
+/** A lobby prepared for display, with users flattened into team-grouped arrays. */
+export interface BZ98LobbyView extends Omit<BZ98Lobby, 'users' | 'recentChat'> {
     users: BZ98User[];
     recentChat: BZ98ChatMessage[];
     oddTeamUsers: BZ98User[];
     evenTeamUsers: BZ98User[];
     unassignedTeamUsers: BZ98User[];
-
-    /** The API's reported stats object, without transformation. */
-    apiStats: BZ98LobbyData | null;
-
-    /** Stats parsed from the raw metadata game-settings string. */
-    parsedStats: BZ98LobbyData | null;
-
-    /** Parsed settings when available, otherwise the API's reported stats. */
-    stats: BZ98LobbyData | null;
 }
 
 export interface BZ98WorkshopItem {
