@@ -178,7 +178,7 @@
                 <span class="count-pill">{{ BZ98ChatLobbies.length }}</span>
             </div>
 
-            <div class="empty-state compact" *ngIf="hasLoaded && BZ98ChatLobbies.length === 0">
+            <div class="empty-state compact" *ngIf="hasLoaded && !loadFailed && BZ98ChatLobbies.length === 0">
                 No chat lobbies were reported.
             </div>
 
@@ -393,9 +393,16 @@
                 </div>
             </details>
 
-            <ng-container *ngIf="user.stats as userStats">
-                <h6 class="detail-subheading">Player-reported settings</h6>
-                <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: userStats}"></ng-container>
+            <ng-container *ngIf="playerSettingDifferences(lobby, user) as settingDifferences">
+                <ng-container *ngIf="settingDifferences.length > 0">
+                    <h6 class="detail-subheading">Player settings differ from lobby</h6>
+                    <dl class="detail-grid player-detail-grid">
+                        <div *ngFor="let difference of settingDifferences">
+                            <dt>{{ difference.label }}</dt>
+                            <dd>Player {{ difference.player }} · Lobby {{ difference.lobby }}</dd>
+                        </div>
+                    </dl>
+                </ng-container>
             </ng-container>
         </details>
     </article>
@@ -443,47 +450,10 @@
         </dl>
     </div>
 
-    <div class="detail-section" *ngIf="lobby.parsedStats as parsedStats">
-        <h5>Parsed game settings</h5>
-        <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: parsedStats}"></ng-container>
-    </div>
-
-    <div class="detail-section" *ngIf="!lobby.isChat">
-        <h5>API-reported stats</h5>
-        <ng-container *ngIf="lobby.apiStats as apiStats; else noApiStats">
-            <ng-container *ngTemplateOutlet="statsDetails; context: {$implicit: apiStats}"></ng-container>
-        </ng-container>
-        <ng-template #noApiStats><p class="text-secondary mb-0">No stats object was reported.</p></ng-template>
-    </div>
-
-    <div class="detail-section" *ngIf="lobby.host as host">
-        <h5>Host snapshot</h5>
-        <ng-container *ngTemplateOutlet="playerCard; context: {$implicit: host, lobby: lobby}"></ng-container>
-    </div>
-</ng-template>
-
-<ng-template #statsDetails let-stats>
-    <dl class="detail-grid">
-        <div><dt>Metadata version</dt><dd>{{ display(stats.metaDataVersion) }}</dd></div>
-        <div><dt>Map file</dt><dd>{{ display(stats.mapFile) }}</dd></div>
-        <div><dt>CRC32</dt><dd>{{ display(stats.crc32) }}</dd></div>
-        <div>
-            <dt>Mod</dt>
-            <dd>
-                {{ display(stats.mod) }}
-                <ng-container *ngIf="workshopUrl(stats.mod) as detailModUrl">
-                    · <a class="link-info text-decoration-none" [href]="detailModUrl" target="_blank" rel="noopener noreferrer">Link to mod</a>
-                </ng-container>
-            </dd>
+    <ng-container *ngIf="showHostSnapshot(lobby)">
+        <div class="detail-section" *ngIf="lobby.host as host">
+            <h5>Host snapshot</h5>
+            <ng-container *ngTemplateOutlet="playerCard; context: {$implicit: host, lobby: lobby}"></ng-container>
         </div>
-        <div><dt>Sync join</dt><dd>{{ yesNo(stats.syncJoin) }}</dd></div>
-        <div><dt>Time limit</dt><dd>{{ display(stats.timeLimit) }}</dd></div>
-        <div><dt>Player limit</dt><dd>{{ display(stats.playerLimit) }}</dd></div>
-        <div><dt>Kill limit</dt><dd>{{ display(stats.killLimit) }}</dd></div>
-        <div><dt>Lives</dt><dd>{{ display(stats.attributes?.lives) }}</dd></div>
-        <div><dt>Satellite</dt><dd>{{ yesNo(stats.attributes?.satellite) }}</dd></div>
-        <div><dt>Barracks</dt><dd>{{ yesNo(stats.attributes?.barracks) }}</dd></div>
-        <div><dt>Sniper</dt><dd>{{ yesNo(stats.attributes?.sniper) }}</dd></div>
-        <div><dt>Splinter</dt><dd>{{ yesNo(stats.attributes?.splinter) }}</dd></div>
-    </dl>
+    </ng-container>
 </ng-template>
