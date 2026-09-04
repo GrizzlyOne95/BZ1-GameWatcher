@@ -49,6 +49,74 @@ jobs:
         working-directory: Web
         run: npm run build
 
+  package_windows:
+    name: Package Windows service
+    # The production Windows package is created only from main. Pull requests still build/test,
+    # but they never produce a deployable artifact for the production runner.
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [ build_api, build_web ]
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: Web/package-lock.json
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build Angular production bundle
+        working-directory: Web
+        run: |
+          npm ci
+          npm run build
+
+      - name: Publish Windows API and combine web bundle
+        shell: pwsh
+        run: |
+          $publishPath = Join-Path $env:RUNNER_TEMP 'bz1-gamewatcher-publish'
+          $webDist = Join-Path $env:GITHUB_WORKSPACE 'Web\dist\bz1-game-watcher\browser'
+          $wwwroot = Join-Path $publishPath 'wwwroot'
+
+          dotnet publish API/BZAPI.csproj `
+            --configuration Release `
+            --runtime win-x64 `
+            --self-contained false `
+            --output $publishPath
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          if (-not (Test-Path (Join-Path $webDist 'index.html'))) {
+            throw "Angular production output was not found at $webDist"
+          }
+
+          New-Item -ItemType Directory -Path $wwwroot -Force | Out-Null
+          Copy-Item -Path (Join-Path $webDist '*') -Destination $wwwroot -Recurse -Force
+
+          # The downstream deployment verifies that it received the package built for the exact
+          # workflow commit before it touches the live service.
+          Set-Content -LiteralPath (Join-Path $publishPath '_deployment_commit.txt') `
+            -Value '${{ github.sha }}' -NoNewline
+
+          # Production secrets are deliberately never part of the CI artifact.
+          $productionConfig = Join-Path $publishPath 'appsettings.Production.json'
+          if (Test-Path $productionConfig) {
+            throw 'appsettings.Production.json unexpectedly entered the Windows deployment artifact.'
+          }
+
+      - name: Upload Windows service package
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-service-${{ github.sha }}
+          path: ${{ runner.temp }}\bz1-gamewatcher-publish
+          if-no-files-found: error
+          retention-days: 7
+
   publish:
     name: Publish images
     # Only publish from main, and only once the code is known to build and pass its tests.
