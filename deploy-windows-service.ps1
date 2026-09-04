@@ -149,7 +149,10 @@ $currentSecret = Join-Path $currentPath 'appsettings.Production.json'
 $releaseSecret = Join-Path $releasePath 'appsettings.Production.json'
 if (Test-Path -LiteralPath $currentSecret) {
     Copy-Item -LiteralPath $currentSecret -Destination $releaseSecret -Force
-    Write-Host 'Carried forward the existing protected production configuration.'
+    # Copying into the staging tree gives the destination its staging-directory ACLs. Lock the
+    # secret down immediately rather than leaving a permissions window until the service swap.
+    Protect-SecretFile -Path $releaseSecret -ServiceAccount $serviceAccount
+    Write-Host 'Carried forward and protected the existing production configuration.'
 } else {
     Write-Warning 'No existing appsettings.Production.json was found; Steam avatar enrichment may remain unavailable.'
 }
