@@ -130,8 +130,9 @@ $rollbackPath = Join-Path $InstallRoot 'rollback'
 $serviceAccount = "NT SERVICE\$ServiceName"
 $releasePath = Join-Path $releasesPath $ReleaseId
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
-$previousPath = Join-Path $rollbackPath "previous-$timestamp-$($ReleaseId.Substring(0, [Math]::Min(8, $ReleaseId.Length)))"
-$failedPath = Join-Path $releasesPath "failed-$timestamp-$($ReleaseId.Substring(0, [Math]::Min(8, $ReleaseId.Length)))"
+$shortReleaseId = $ReleaseId.Substring(0, [Math]::Min(8, $ReleaseId.Length))
+$previousPath = Join-Path $rollbackPath "previous-$timestamp-$shortReleaseId"
+$failedPath = Join-Path $releasesPath "failed-$timestamp-$shortReleaseId"
 
 New-Item -ItemType Directory -Path $InstallRoot -Force | Out-Null
 New-Item -ItemType Directory -Path $dataPath -Force | Out-Null
@@ -192,7 +193,7 @@ try {
     Write-Host "Deployment succeeded: $ReleaseId"
 } catch {
     $deploymentError = $_
-    Write-Error "Deployment failed: $($deploymentError.Exception.Message)"
+    Write-Warning "Deployment failed: $($deploymentError.Exception.Message). Attempting rollback."
 
     try {
         $currentService = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
@@ -219,7 +220,7 @@ try {
             Write-Warning 'There was no previous release directory available for rollback.'
         }
     } catch {
-        Write-Error "Rollback also failed: $($_.Exception.Message)"
+        Write-Warning "Rollback also failed: $($_.Exception.Message)"
     }
 
     throw $deploymentError
