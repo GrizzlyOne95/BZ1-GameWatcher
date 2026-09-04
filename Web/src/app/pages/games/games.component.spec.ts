@@ -115,29 +115,29 @@ describe('GamesComponent', () => {
         teardown();
     }));
 
-    it('ignores game settings that are too short to parse', fakeAsync(() => {
-        load([
-            lobby({ metaData: { gameSettings: '*' } as never, stats: null })
-        ]);
-
-        expect(fixture.componentInstance.BZ98Lobbies[0].parsedStats).toBeNull();
-        expect(fixture.componentInstance.BZ98Lobbies[0].stats).toBeNull();
-
-        teardown();
-    }));
-
-    it('parses all documented game settings fields while preserving API stats', fakeAsync(() => {
+    it('uses API-normalized lobby stats as the canonical view data', fakeAsync(() => {
         const apiStats = {
             mapFile: 'api-map.bzn',
             crc32: 'API',
             mod: 'api-mod',
-            attributes: null
+            metaDataVersion: 2,
+            syncJoin: false,
+            timeLimit: 0,
+            playerLimit: 3,
+            killLimit: 0,
+            attributes: {
+                lives: '5',
+                satellite: true,
+                barracks: true,
+                sniper: true,
+                splinter: true
+            }
         };
 
         load([
             lobby({
                 metaData: {
-                    gameSettings: '78*bunker.bzn*ABC123*2299335165*1*0*1*180*5*8*1*25*0*'
+                    gameSettings: '2*raw-map.bzn*RAW*raw-mod*1*0*0*60*1*8*0*25*0*'
                 } as never,
                 stats: apiStats
             })
@@ -145,21 +145,124 @@ describe('GamesComponent', () => {
 
         const view = fixture.componentInstance.BZ98Lobbies[0];
 
-        expect(view.parsedStats?.metaDataVersion).toBe(78);
-        expect(view.parsedStats?.mapFile).toBe('bunker.bzn');
-        expect(view.parsedStats?.crc32).toBe('ABC123');
-        expect(view.parsedStats?.mod).toBe('2299335165');
-        expect(view.parsedStats?.syncJoin).toBeTrue();
-        expect(view.parsedStats?.timeLimit).toBe(180);
-        expect(view.parsedStats?.playerLimit).toBe(8);
-        expect(view.parsedStats?.killLimit).toBe(25);
-        expect(view.parsedStats?.attributes?.satellite).toBeFalse();
-        expect(view.parsedStats?.attributes?.barracks).toBeTrue();
-        expect(view.parsedStats?.attributes?.lives).toBe('5');
-        expect(view.parsedStats?.attributes?.sniper).toBeTrue();
-        expect(view.parsedStats?.attributes?.splinter).toBeFalse();
-        expect(view.apiStats).toEqual(apiStats);
-        expect(view.stats).toBe(view.parsedStats);
+        expect(view.stats).toBe(apiStats);
+        expect(view.stats?.mapFile).toBe('api-map.bzn');
+        expect(view.metaData?.gameSettings).toContain('raw-map.bzn');
+
+        teardown();
+    }));
+
+    it('suppresses a duplicate host snapshot when the host is already in the public roster', fakeAsync(() => {
+        const host = user({ id: 'S1', steamCleanId: '76561198000000001', name: 'Host' });
+
+        load([
+            lobby({
+                owner: 'S1',
+                host: user({ id: 'S1', steamCleanId: '76561198000000001', name: 'Host' }),
+                users: { S1: host },
+                userCount: 1
+            })
+        ]);
+
+        expect(fixture.componentInstance.showHostSnapshot(fixture.componentInstance.BZ98Lobbies[0])).toBeFalse();
+        expect((fixture.nativeElement.textContent as string)).not.toContain('Host snapshot');
+
+        teardown();
+    }));
+
+    it('retains a host snapshot when the host is absent from the public roster', fakeAsync(() => {
+        const hiddenHost = user({ id: 'B1', name: '!BRIDGE' });
+
+        load([
+            lobby({
+                owner: 'B1',
+                host: hiddenHost,
+                users: { S1: user({ id: 'S1', name: 'Pilot' }) },
+                userCount: 1
+            })
+        ]);
+
+        expect(fixture.componentInstance.showHostSnapshot(fixture.componentInstance.BZ98Lobbies[0])).toBeTrue();
+        expect((fixture.nativeElement.textContent as string)).toContain('Host snapshot');
+
+        teardown();
+    }));
+
+    it('shows only player settings that differ from the lobby settings', fakeAsync(() => {
+        const lobbyStats = {
+            mapFile: 'marsmpi1.bzn',
+            crc32: '3417369877',
+            mod: '657263421',
+            metaDataVersion: 2,
+            syncJoin: false,
+            timeLimit: 0,
+            playerLimit: 3,
+            killLimit: 0,
+            attributes: {
+                lives: '5',
+                satellite: true,
+                barracks: true,
+                sniper: true,
+                splinter: true
+            }
+        };
+        const playerStats = {
+            ...lobbyStats,
+            attributes: {
+                ...lobbyStats.attributes,
+                lives: '3',
+                splinter: false
+            }
+        };
+        const pilot = user({ id: 'S1', name: 'Pilot', stats: playerStats });
+
+        load([
+            lobby({
+                stats: lobbyStats,
+                users: { S1: pilot },
+                userCount: 1
+            })
+        ]);
+
+        const view = fixture.componentInstance.BZ98Lobbies[0];
+        const differences = fixture.componentInstance.playerSettingDifferences(view, view.users[0]);
+
+        expect(differences).toEqual([
+            { label: 'Lives', player: '3', lobby: '5' },
+            { label: 'Splinter', player: 'No', lobby: 'Yes' }
+        ]);
+        expect((fixture.nativeElement.textContent as string)).toContain('Player settings differ from lobby');
+
+        teardown();
+    }));
+
+    it('does not repeat player settings when they match the lobby', fakeAsync(() => {
+        const sharedStats = {
+            mapFile: 'marsmpi1.bzn',
+            crc32: '3417369877',
+            mod: '657263421',
+            metaDataVersion: 2,
+            syncJoin: false,
+            timeLimit: 0,
+            playerLimit: 3,
+            killLimit: 0,
+            attributes: {
+                lives: '5',
+                satellite: true,
+                barracks: true,
+                sniper: true,
+                splinter: true
+            }
+        };
+        const pilot = user({ id: 'S1', name: 'Pilot', stats: sharedStats });
+
+        load([
+            lobby({ stats: sharedStats, users: { S1: pilot }, userCount: 1 })
+        ]);
+
+        const view = fixture.componentInstance.BZ98Lobbies[0];
+        expect(fixture.componentInstance.playerSettingDifferences(view, view.users[0])).toEqual([]);
+        expect((fixture.nativeElement.textContent as string)).not.toContain('Player settings differ from lobby');
 
         teardown();
     }));
