@@ -1,3 +1,4 @@
+using System.Threading.Channels;
 using BZAPI.Configuration;
 using BZAPI.Models;
 using BZAPI.Storage;
@@ -26,6 +27,17 @@ public sealed class BZ98ChatObserver : BackgroundService
     private readonly ILogger<BZ98ChatObserver> _logger;
     private readonly Dictionary<int, ObserverSession> _observers = [];
 
+    // LobbyStore already publishes a synchronous change event. Coalescing it through a bounded
+    // channel keeps the event handler non-blocking and lets the background service reconcile only
+    // when authoritative lobby state changes instead of polling every few seconds.
+    private readonly Channel<bool> _reconcileSignals = Channel.CreateBounded<bool>(
+        new BoundedChannelOptions(1)
+        {
+            FullMode = BoundedChannelFullMode.DropWrite,
+            SingleReader = true,
+            SingleWriter = false
+        });
+
     public BZ98ChatObserver(
         ILobbyStore lobbies,
         IChatStore chat,
@@ -48,19 +60,24 @@ public sealed class BZ98ChatObserver : BackgroundService
             return;
         }
 
-        var interval = _options.ScanInterval <= TimeSpan.Zero
-            ? TimeSpan.FromSeconds(10)
-            : _options.ScanInterval;
+        void OnSnapshotChanged(LobbySnapshot _, LobbySnapshot __) =>
+            _reconcileSignals.Writer.TryWrite(true);
 
-        using var timer = new PeriodicTimer(interval);
+        _lobbies.SnapshotChanged += OnSnapshotChanged;
 
         try
         {
-            await ReconcileObserversAsync(stoppingToken);
+            ReconcileObservers(stoppingToken);
 
-            while (await timer.WaitForNextTickAsync(stoppingToken))
+            while (await _reconcileSignals.Reader.WaitToReadAsync(stoppingToken))
             {
-                await ReconcileObserversAsync(stoppingToken);
+                // Multiple lobby deltas can arrive in a burst. Only the latest immutable snapshot
+                // matters for deciding which observer sessions should exist.
+                while (_reconcileSignals.Reader.TryRead(out _))
+                {
+                }
+
+                ReconcileObservers(stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -69,6 +86,8 @@ public sealed class BZ98ChatObserver : BackgroundService
         }
         finally
         {
+            _lobbies.SnapshotChanged -= OnSnapshotChanged;
+
             foreach (var session in _observers.Values)
             {
                 session.Cancellation.Cancel();
@@ -93,7 +112,7 @@ public sealed class BZ98ChatObserver : BackgroundService
         }
     }
 
-    private Task ReconcileObserversAsync(CancellationToken stoppingToken)
+    private void ReconcileObservers(CancellationToken stoppingToken)
     {
         foreach (var completed in _observers
                      .Where(pair => pair.Value.Task.IsCompleted)
@@ -148,22 +167,38 @@ public sealed class BZ98ChatObserver : BackgroundService
                 lobby.MetaData?.Name,
                 lobby.Id);
         }
-
-        return Task.CompletedTask;
     }
 
     private async Task ObserveLobbyAsync(int lobbyId, string lobbyName, CancellationToken cancellationToken)
     {
         try
         {
+            var reconnectDelay = _options.ReconnectDelay <= TimeSpan.Zero
+                ? TimeSpan.FromMinutes(1)
+                : _options.ReconnectDelay;
+
             using var client = new WebsocketClient(new Uri(_battlezone.LobbyServerUrl))
             {
-                ReconnectTimeout = _battlezone.StaleConnectionTimeout,
-                ErrorReconnectTimeout = _battlezone.ErrorReconnectTimeout
+                // This is deliberately null. Websocket.Client's ReconnectTimeout is an inactivity
+                // watchdog, not a transport-failure timeout. Chat rooms can legitimately be quiet
+                // for hours, so using the main watcher's five-minute stale timeout here caused a
+                // healthy observer to reconnect, obtain a new Web user ID and rejoin its lobby.
+                ReconnectTimeout = null,
+
+                // Genuine connection failures still recover so live chat resumes automatically,
+                // but use a conservative delay to avoid hammering the legacy matchmaking service.
+                ErrorReconnectTimeout = reconnectDelay,
+                LostReconnectTimeout = reconnectDelay
             };
 
-            using var reconnections = client.ReconnectionHappened.Subscribe(_ =>
+            using var reconnections = client.ReconnectionHappened.Subscribe(info =>
             {
+                _logger.LogInformation(
+                    "Read-only chat observer connection established for {LobbyName} ({LobbyId}) ({ReconnectionType}); authorizing.",
+                    lobbyName,
+                    lobbyId,
+                    info.Type);
+
                 Send(client, new
                 {
                     type = "Authorization",
@@ -175,6 +210,20 @@ public sealed class BZ98ChatObserver : BackgroundService
                         apiVer = "0.0"
                     }
                 });
+            });
+
+            using var disconnections = client.DisconnectionHappened.Subscribe(info =>
+            {
+                // A reconnect creates a new upstream Web session. Stop filtering the old ID until
+                // the replacement Authorization response identifies the new observer session.
+                _chat.SetObserverUserId(lobbyId, null);
+                _logger.LogWarning(
+                    info.Exception,
+                    "Read-only chat observer disconnected from {LobbyName} ({LobbyId}) ({DisconnectionType}); retry is delayed by {ReconnectDelay}.",
+                    lobbyName,
+                    lobbyId,
+                    info.Type,
+                    reconnectDelay);
             });
 
             using var messages = client.MessageReceived.Subscribe(message =>
@@ -208,6 +257,10 @@ public sealed class BZ98ChatObserver : BackgroundService
                             // our own observer without hiding third-party Web accounts such as !BRIDGE.
                             _chat.SetObserverUserId(lobbyId, payload?["id"]?.ToString());
 
+                            // Rebellion's own Web client authenticates once, enters the lounge, and
+                            // then receives chat through push OnChatMessage events. A dedicated
+                            // joined session is retained here only so messages can be attributed to
+                            // one configured lobby without depending on undocumented payload fields.
                             Send(client, new { type = "DoEnterLounge", content = true });
                             SetIdentity(client);
                             Send(client, new
@@ -259,6 +312,10 @@ public sealed class BZ98ChatObserver : BackgroundService
                 "Read-only chat observer for {LobbyName} ({LobbyId}) stopped unexpectedly.",
                 lobbyName,
                 lobbyId);
+        }
+        finally
+        {
+            _chat.SetObserverUserId(lobbyId, null);
         }
     }
 
