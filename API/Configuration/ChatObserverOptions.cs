@@ -32,6 +32,10 @@ public sealed class ChatObserverOptions
     /// <summary>Maximum characters retained from one upstream chat message.</summary>
     public int MaxMessageLength { get; set; } = 500;
 
-    /// <summary>How often the current lobby list is checked for observer targets.</summary>
-    public TimeSpan ScanInterval { get; set; } = TimeSpan.FromSeconds(10);
+    /// <summary>
+    /// Delay before retrying a genuinely lost or failed observer connection. Quiet chat rooms do
+    /// not use this timer: inactivity-based reconnects are disabled so a healthy observer keeps a
+    /// single server session and lobby membership for as long as possible.
+    /// </summary>
+    public TimeSpan ReconnectDelay { get; set; } = TimeSpan.FromMinutes(1);
 }
