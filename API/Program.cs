@@ -64,6 +64,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<ILobbyStore, LobbyStore>();
 builder.Services.AddSingleton<IChatStore, ChatStore>();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IActivityStore, ActivityStore>();
 builder.Services.AddSingleton<IActivityEventStore, ActivityEventStore>();
 builder.Services.AddSingleton<ISteamAvatarProvider, SteamAvatarProvider>();
