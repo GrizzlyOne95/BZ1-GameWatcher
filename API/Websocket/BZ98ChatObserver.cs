@@ -1,3 +1,4 @@
+using System.Net.WebSockets;
 using System.Threading.Channels;
 using BZAPI.Configuration;
 using BZAPI.Models;
@@ -25,7 +26,11 @@ public sealed class BZ98ChatObserver : BackgroundService
     private readonly BattlezoneOptions _battlezone;
     private readonly ChatObserverOptions _options;
     private readonly ILogger<BZ98ChatObserver> _logger;
+    private readonly TimeProvider _timeProvider;
     private readonly Dictionary<int, ObserverSession> _observers = [];
+    private readonly object _attemptGate = new();
+    private readonly Queue<DateTimeOffset> _connectionAttempts = [];
+    private DateTimeOffset? _circuitOpenUntil;
 
     // LobbyStore already publishes a synchronous change event. Coalescing it through a bounded
     // channel keeps the event handler non-blocking and lets the background service reconcile only
@@ -43,13 +48,15 @@ public sealed class BZ98ChatObserver : BackgroundService
         IChatStore chat,
         IOptions<BattlezoneOptions> battlezone,
         IOptions<ChatObserverOptions> options,
-        ILogger<BZ98ChatObserver> logger)
+        ILogger<BZ98ChatObserver> logger,
+        TimeProvider timeProvider)
     {
         _lobbies = lobbies;
         _chat = chat;
         _battlezone = battlezone.Value;
         _options = options.Value;
         _logger = logger;
+        _timeProvider = timeProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -67,7 +74,7 @@ public sealed class BZ98ChatObserver : BackgroundService
 
         try
         {
-            ReconcileObservers(stoppingToken);
+            await ReconcileObserversAsync(stoppingToken);
 
             while (await _reconcileSignals.Reader.WaitToReadAsync(stoppingToken))
             {
@@ -77,7 +84,7 @@ public sealed class BZ98ChatObserver : BackgroundService
                 {
                 }
 
-                ReconcileObservers(stoppingToken);
+                await ReconcileObserversAsync(stoppingToken);
             }
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
@@ -112,7 +119,7 @@ public sealed class BZ98ChatObserver : BackgroundService
         }
     }
 
-    private void ReconcileObservers(CancellationToken stoppingToken)
+    private async Task ReconcileObserversAsync(CancellationToken stoppingToken)
     {
         foreach (var completed in _observers
                      .Where(pair => pair.Value.Task.IsCompleted)
@@ -146,6 +153,16 @@ public sealed class BZ98ChatObserver : BackgroundService
         {
             var session = _observers[obsoleteId];
             session.Cancellation.Cancel();
+
+            try
+            {
+                await session.Task;
+            }
+            catch (OperationCanceledException) when (session.Cancellation.IsCancellationRequested)
+            {
+                // Expected while replacing an observer whose lobby disappeared.
+            }
+
             session.Cancellation.Dispose();
             _observers.Remove(obsoleteId);
             _chat.RemoveLobby(obsoleteId);
@@ -162,6 +179,11 @@ public sealed class BZ98ChatObserver : BackgroundService
             var cancellation = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
             var task = ObserveLobbyAsync(lobby.Id, lobby.MetaData?.Name ?? $"Lobby {lobby.Id}", cancellation.Token);
             _observers[lobby.Id] = new ObserverSession(cancellation, task);
+            _ = task.ContinueWith(
+                _ => _reconcileSignals.Writer.TryWrite(true),
+                CancellationToken.None,
+                TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
             _logger.LogInformation(
                 "Started read-only chat observer for {LobbyName} ({LobbyId}).",
                 lobby.MetaData?.Name,
@@ -177,129 +199,227 @@ public sealed class BZ98ChatObserver : BackgroundService
                 ? TimeSpan.FromMinutes(1)
                 : _options.ReconnectDelay;
 
-            using var client = new WebsocketClient(new Uri(_battlezone.LobbyServerUrl))
+            while (!cancellationToken.IsCancellationRequested)
             {
-                // This is deliberately null. Websocket.Client's ReconnectTimeout is an inactivity
-                // watchdog, not a transport-failure timeout. Chat rooms can legitimately be quiet
-                // for hours, so using the main watcher's five-minute stale timeout here caused a
-                // healthy observer to reconnect, obtain a new Web user ID and rejoin its lobby.
-                ReconnectTimeout = null,
-
-                // Genuine connection failures still recover so live chat resumes automatically,
-                // but use a conservative delay to avoid hammering the legacy matchmaking service.
-                ErrorReconnectTimeout = reconnectDelay,
-                LostReconnectTimeout = reconnectDelay
-            };
-
-            using var reconnections = client.ReconnectionHappened.Subscribe(info =>
-            {
-                _logger.LogInformation(
-                    "Read-only chat observer connection established for {LobbyName} ({LobbyId}) ({ReconnectionType}); authorizing.",
-                    lobbyName,
-                    lobbyId,
-                    info.Type);
-
-                Send(client, new
+                // Every socket creation, initial or replacement, consumes one slot from the
+                // process-wide budget. When the budget is exhausted the circuit opens and this
+                // session waits it out instead of creating sockets.
+                if (!TryReserveConnectionSlot())
                 {
-                    type = "Authorization",
-                    content = new
-                    {
-                        authtype = "web",
-                        key = string.Empty,
-                        id = "0",
-                        apiVer = "0.0"
-                    }
-                });
-            });
+                    var circuitWait = GetCircuitWait();
+                    _logger.LogError(
+                        "Read-only chat observer connection budget exhausted; {LobbyName} ({LobbyId}) waits {Wait} before creating its next socket.",
+                        lobbyName,
+                        lobbyId,
+                        circuitWait);
+                    await Task.Delay(circuitWait, cancellationToken);
+                    continue;
+                }
 
-            using var disconnections = client.DisconnectionHappened.Subscribe(info =>
-            {
-                // A reconnect creates a new upstream Web session. Stop filtering the old ID until
-                // the replacement Authorization response identifies the new observer session.
+                var sessionEnded =
+                    new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+                // Websocket.Client's automatic recovery is disabled: the library would otherwise
+                // recreate sockets on its own schedule, which cannot respect the process-wide
+                // connection budget. This loop creates each replacement socket itself after
+                // ReconnectDelay, and each creation reserves another budget slot.
+                using (var client = new WebsocketClient(new Uri(_battlezone.LobbyServerUrl))
+                       {
+                           ReconnectTimeout = null,
+                           ErrorReconnectTimeout = null,
+                           LostReconnectTimeout = null
+                       })
+                {
+                    bool SendOrEnd(IWebsocketClient target, object payload, string action)
+                    {
+                        try
+                        {
+                            if (target.Send(JsonConvert.SerializeObject(payload)))
+                            {
+                                return true;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(
+                                ex,
+                                "Read-only chat observer {Action} send threw for {LobbyName} ({LobbyId}).",
+                                action,
+                                lobbyName,
+                                lobbyId);
+                        }
+
+                        // Send failures open the circuit: retrying against a rejecting or
+                        // broken peer is what the budget exists to prevent.
+                        OpenCircuit();
+                        sessionEnded.TrySetResult();
+                        return false;
+                    }
+
+                    using var reconnections = client.ReconnectionHappened.Subscribe(info =>
+                    {
+                        _logger.LogInformation(
+                            "Read-only chat observer connection established for {LobbyName} ({LobbyId}) ({ReconnectionType}); authorizing.",
+                            lobbyName,
+                            lobbyId,
+                            info.Type);
+
+                        SendOrEnd(client, new
+                        {
+                            type = "Authorization",
+                            content = new
+                            {
+                                authtype = "web",
+                                key = string.Empty,
+                                id = "0",
+                                apiVer = "0.0"
+                            }
+                        }, "authorization");
+                    });
+
+                    using var disconnections = client.DisconnectionHappened.Subscribe(info =>
+                    {
+                        // A replacement socket creates a new upstream Web session. Stop filtering
+                        // the old ID until the replacement Authorization response identifies it.
+                        _chat.SetObserverUserId(lobbyId, null);
+                        _logger.LogWarning(
+                            info.Exception,
+                            "Read-only chat observer disconnected from {LobbyName} ({LobbyId}) ({DisconnectionType}); retry is delayed by {ReconnectDelay}.",
+                            lobbyName,
+                            lobbyId,
+                            info.Type,
+                            reconnectDelay);
+                        sessionEnded.TrySetResult();
+                    });
+
+                    using var messages = client.MessageReceived.Subscribe(message =>
+                    {
+                        if (message.Text is not { Length: > 0 } text)
+                        {
+                            return;
+                        }
+
+                        try
+                        {
+                            var envelope = JObject.Parse(text);
+                            var type = envelope["type"]?.ToString();
+                            // The public service has emitted both `data` and `content` envelopes over its
+                            // lifetime. Accept both, matching the older LobbyMonitor compatibility logic.
+                            var payload = envelope["data"] as JObject ?? envelope["content"] as JObject;
+
+                            switch (type)
+                            {
+                                case "OnAuthorization":
+                                    if (ReadBoolean(payload?["success"]) is false)
+                                    {
+                                        _logger.LogWarning(
+                                            "Read-only chat observer authorization was rejected for lobby {LobbyId}; pausing this room for {Cooldown}.",
+                                            lobbyId,
+                                            _options.CircuitOpenDuration);
+                                        // Authorization rejections open the circuit: retrying with
+                                        // the same credentials would only consume budget.
+                                        OpenCircuit();
+                                        sessionEnded.TrySetResult();
+                                        return;
+                                    }
+
+                                    // The observer is a real Web user while joined. Retain its server-issued
+                                    // ID internally so the public Game Watcher roster/count can exclude only
+                                    // our own observer without hiding third-party Web accounts such as !BRIDGE.
+                                    _chat.SetObserverUserId(lobbyId, payload?["id"]?.ToString());
+
+                                    // Rebellion's own Web client authenticates once, enters the lounge, and
+                                    // then receives chat through push OnChatMessage events. A dedicated
+                                    // joined session is retained here only so messages can be attributed to
+                                    // one configured lobby without depending on undocumented payload fields.
+                                    if (!SendOrEnd(client, new { type = "DoEnterLounge", content = true }, "lounge-entry"))
+                                    {
+                                        return;
+                                    }
+
+                                    SetIdentity(client);
+
+                                    if (!SendOrEnd(client, new
+                                        {
+                                            type = "DoJoinLobby",
+                                            content = new { id = lobbyId, password = string.Empty }
+                                        }, "lobby-join"))
+                                    {
+                                        return;
+                                    }
+
+                                    break;
+
+                                case "OnLobbyJoined":
+                                    if (ReadBoolean(payload?["success"]) is false)
+                                    {
+                                        _logger.LogWarning(
+                                            "Read-only chat observer could not join {LobbyName} ({LobbyId}): {Reason}; pausing this room for {Cooldown}.",
+                                            lobbyName,
+                                            lobbyId,
+                                            payload?["reason"]?.ToString(),
+                                            _options.CircuitOpenDuration);
+                                        OpenCircuit();
+                                        sessionEnded.TrySetResult();
+                                    }
+                                    break;
+
+                                case "OnChatMessage":
+                                    if (payload is not null)
+                                    {
+                                        StoreMessage(lobbyId, payload);
+                                    }
+                                    break;
+                            }
+                        }
+                        catch (JsonException ex)
+                        {
+                            _logger.LogDebug(
+                                ex,
+                                "Ignoring malformed chat-observer message for lobby {LobbyId}.",
+                                lobbyId);
+                        }
+                    });
+
+                    await client.Start();
+
+                    if (!client.IsStarted)
+                    {
+                        _logger.LogWarning(
+                            "Read-only chat observer could not connect to {LobbyName} ({LobbyId}); retry is delayed by {ReconnectDelay}.",
+                            lobbyName,
+                            lobbyId,
+                            reconnectDelay);
+                        sessionEnded.TrySetResult();
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "Read-only chat observer socket for {LobbyName} ({LobbyId}) is live.",
+                            lobbyName,
+                            lobbyId);
+                    }
+
+                    // Stay on this socket until it disconnects, the protocol rejects the session,
+                    // or the application shuts down. The wait is cancellable so shutdown never
+                    // hangs on a session whose socket died without raising DisconnectionHappened.
+                    try
+                    {
+                        await sessionEnded.Task.WaitAsync(cancellationToken);
+                    }
+                    catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                    {
+                        // Normal observer shutdown; client disposal below closes the socket.
+                    }
+                }
+
                 _chat.SetObserverUserId(lobbyId, null);
-                _logger.LogWarning(
-                    info.Exception,
-                    "Read-only chat observer disconnected from {LobbyName} ({LobbyId}) ({DisconnectionType}); retry is delayed by {ReconnectDelay}.",
-                    lobbyName,
-                    lobbyId,
-                    info.Type,
-                    reconnectDelay);
-            });
 
-            using var messages = client.MessageReceived.Subscribe(message =>
-            {
-                if (message.Text is not { Length: > 0 } text)
+                if (!cancellationToken.IsCancellationRequested)
                 {
-                    return;
+                    await Task.Delay(reconnectDelay, cancellationToken);
                 }
-
-                try
-                {
-                    var envelope = JObject.Parse(text);
-                    var type = envelope["type"]?.ToString();
-                    // The public service has emitted both `data` and `content` envelopes over its
-                    // lifetime. Accept both, matching the older LobbyMonitor compatibility logic.
-                    var payload = envelope["data"] as JObject ?? envelope["content"] as JObject;
-
-                    switch (type)
-                    {
-                        case "OnAuthorization":
-                            if (ReadBoolean(payload?["success"]) is false)
-                            {
-                                _logger.LogWarning(
-                                    "Read-only chat observer authorization was rejected for lobby {LobbyId}.",
-                                    lobbyId);
-                                return;
-                            }
-
-                            // The observer is a real Web user while joined. Retain its server-issued
-                            // ID internally so the public Game Watcher roster/count can exclude only
-                            // our own observer without hiding third-party Web accounts such as !BRIDGE.
-                            _chat.SetObserverUserId(lobbyId, payload?["id"]?.ToString());
-
-                            // Rebellion's own Web client authenticates once, enters the lounge, and
-                            // then receives chat through push OnChatMessage events. A dedicated
-                            // joined session is retained here only so messages can be attributed to
-                            // one configured lobby without depending on undocumented payload fields.
-                            Send(client, new { type = "DoEnterLounge", content = true });
-                            SetIdentity(client);
-                            Send(client, new
-                            {
-                                type = "DoJoinLobby",
-                                content = new { id = lobbyId, password = string.Empty }
-                            });
-                            break;
-
-                        case "OnLobbyJoined":
-                            if (ReadBoolean(payload?["success"]) is false)
-                            {
-                                _logger.LogWarning(
-                                    "Read-only chat observer could not join {LobbyName} ({LobbyId}): {Reason}",
-                                    lobbyName,
-                                    lobbyId,
-                                    payload?["reason"]?.ToString());
-                            }
-                            break;
-
-                        case "OnChatMessage":
-                            if (payload is not null)
-                            {
-                                StoreMessage(lobbyId, payload);
-                            }
-                            break;
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogDebug(
-                        ex,
-                        "Ignoring malformed chat-observer message for lobby {LobbyId}.",
-                        lobbyId);
-                }
-            });
-
-            await client.Start();
-            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -316,6 +436,70 @@ public sealed class BZ98ChatObserver : BackgroundService
         finally
         {
             _chat.SetObserverUserId(lobbyId, null);
+        }
+    }
+
+    /// <summary>
+    /// Reserves one socket-creation slot from the process-wide budget. Opens the circuit
+    /// breaker when the sliding window is exhausted; the circuit then blocks every room.
+    /// </summary>
+    private bool TryReserveConnectionSlot()
+    {
+        lock (_attemptGate)
+        {
+            var now = _timeProvider.GetUtcNow();
+            var window = _options.ConnectionAttemptWindow;
+
+            while (_connectionAttempts.Count > 0 && now - _connectionAttempts.Peek() > window)
+            {
+                _connectionAttempts.Dequeue();
+            }
+
+            if (_circuitOpenUntil is { } openUntil && now < openUntil)
+            {
+                return false;
+            }
+
+            _circuitOpenUntil = null;
+
+            if (window > TimeSpan.Zero &&
+                _connectionAttempts.Count >= _options.MaxConnectionAttemptsPerWindow)
+            {
+                _circuitOpenUntil = now + _options.CircuitOpenDuration;
+                _logger.LogWarning(
+                    "Chat observer made {Attempts} socket attempts in {Window}; circuit open until {OpenUntil}.",
+                    _connectionAttempts.Count,
+                    window,
+                    _circuitOpenUntil);
+                return false;
+            }
+
+            _connectionAttempts.Enqueue(now);
+            return true;
+        }
+    }
+
+    /// <summary>How long a budget-blocked session should wait before asking again.</summary>
+    private TimeSpan GetCircuitWait()
+    {
+        lock (_attemptGate)
+        {
+            var now = _timeProvider.GetUtcNow();
+            if (_circuitOpenUntil is { } openUntil && openUntil > now)
+            {
+                return openUntil - now;
+            }
+
+            return TimeSpan.FromMinutes(1);
+        }
+    }
+
+    /// <summary>Opens the circuit for protocol-level rejections (auth, join, send).</summary>
+    private void OpenCircuit()
+    {
+        lock (_attemptGate)
+        {
+            _circuitOpenUntil = _timeProvider.GetUtcNow() + _options.CircuitOpenDuration;
         }
     }
 

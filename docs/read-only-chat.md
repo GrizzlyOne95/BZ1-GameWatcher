@@ -7,7 +7,8 @@ Game Watcher can observe configured public BZ98 chat lobbies using server-side W
 - Each configured lobby uses one long-lived observer session so incoming `OnChatMessage` events remain live and can be attributed to the correct lobby.
 - Observer creation/removal is driven by authoritative lobby snapshot changes from the main watcher; chat observation does not poll the matchmaking service for messages or periodically rejoin rooms.
 - Inactivity-based WebSocket reconnects are disabled. A quiet chat room therefore keeps the same server session and lobby membership instead of obtaining a new Web user ID every few minutes.
-- Genuine transport failures still reconnect so live chat can recover, but retries use the configured `ReconnectDelay` (one minute by default) before re-authorizing and rejoining the same configured lobby.
+- Genuine transport failures still reconnect so live chat can recover, but the application creates each replacement socket itself after the configured `ReconnectDelay` (five minutes by default). A process-wide budget permits at most three observer socket creations across all rooms in 30 minutes, then opens a one-hour circuit breaker. Lobby-ID churn cannot reset or multiply that budget.
+- Protocol-level rejections also open the circuit breaker instead of consuming budget on doomed retries: an authorization rejection, a failed lobby join, or an unable-to-send socket all pause that room (and any new observers) for the configured cooldown.
 - Recent chat is bounded in memory and is not persisted.
 - The public API exposes only author/speaker ID, message text, and timestamp.
 - Browser clients receive no lobby-server credentials and no operation that can send a chat message.

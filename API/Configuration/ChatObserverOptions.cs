@@ -37,5 +37,14 @@ public sealed class ChatObserverOptions
     /// not use this timer: inactivity-based reconnects are disabled so a healthy observer keeps a
     /// single server session and lobby membership for as long as possible.
     /// </summary>
-    public TimeSpan ReconnectDelay { get; set; } = TimeSpan.FromMinutes(1);
+    public TimeSpan ReconnectDelay { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>Maximum observer socket creations across all rooms in one window.</summary>
+    public int MaxConnectionAttemptsPerWindow { get; set; } = 3;
+
+    /// <summary>Sliding window used by the process-wide observer connection budget.</summary>
+    public TimeSpan ConnectionAttemptWindow { get; set; } = TimeSpan.FromMinutes(30);
+
+    /// <summary>How long all observers pause after the shared connection budget is exhausted.</summary>
+    public TimeSpan CircuitOpenDuration { get; set; } = TimeSpan.FromHours(1);
 }
