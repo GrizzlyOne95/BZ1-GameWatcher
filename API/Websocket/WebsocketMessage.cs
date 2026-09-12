@@ -66,5 +66,20 @@ namespace BZAPI.Websocket
 
         [JsonProperty("apiVer")]
         public string? ApiVer { get; set; }
+
+        [JsonProperty("clientVersion", NullValueHandling = NullValueHandling.Ignore)]
+        public string? ClientVersion { get; set; }
+
+        /// <summary>
+        /// Public display name. The lobby server takes the user's top-level name from this field;
+        /// a later <c>SetPlayerData</c> update only reaches the metadata bag. Omitted when null so
+        /// an unnamed session stays byte-identical to the historical anonymous payload.
+        /// </summary>
+        [JsonProperty("name", NullValueHandling = NullValueHandling.Ignore)]
+        public string? Name { get; set; }
+
+        /// <summary>Sent alongside <see cref="Name"/>, matching the stock Web client.</summary>
+        [JsonProperty("playerName", NullValueHandling = NullValueHandling.Ignore)]
+        public string? PlayerName { get; set; }
     }
 }

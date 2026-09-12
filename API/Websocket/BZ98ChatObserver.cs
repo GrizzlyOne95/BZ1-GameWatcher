@@ -17,7 +17,8 @@ namespace BZAPI.Websocket;
 /// </summary>
 public sealed class BZ98ChatObserver : BackgroundService
 {
-    private const string ClientVersion = "2.2.301";
+    // One source of truth with the Authorization payload; the two must not drift apart.
+    private const string ClientVersion = BzrNetAuthorization.ClientVersion;
 
     private sealed record ObserverSession(CancellationTokenSource Cancellation, Task Task);
 
@@ -265,17 +266,10 @@ public sealed class BZ98ChatObserver : BackgroundService
                             lobbyId,
                             info.Type);
 
-                        SendOrEnd(client, new
-                        {
-                            type = "Authorization",
-                            content = new
-                            {
-                                authtype = "web",
-                                key = string.Empty,
-                                id = "0",
-                                apiVer = "0.0"
-                            }
-                        }, "authorization");
+                        // Identity travels in Authorization: a later SetPlayerData only populates
+                        // the metadata bag, which left the observer showing as `unknown` to other
+                        // players despite being documented as openly identified.
+                        SendOrEnd(client, BzrNetAuthorization.Create(ObserverName), "authorization");
                     });
 
                     using var disconnections = client.DisconnectionHappened.Subscribe(info =>
@@ -469,11 +463,17 @@ public sealed class BZ98ChatObserver : BackgroundService
             ReadTime(data["time"])));
     }
 
+    /// <summary>
+    /// Public identity for this observer. Authorization declares it; <see cref="SetIdentity"/>
+    /// repeats it into the metadata bag so both views of the user agree.
+    /// </summary>
+    private string ObserverName => string.IsNullOrWhiteSpace(_options.PlayerName)
+        ? "BZ1 Game Watcher (read-only)"
+        : _options.PlayerName.Trim();
+
     private void SetIdentity(IWebsocketClient client)
     {
-        var playerName = string.IsNullOrWhiteSpace(_options.PlayerName)
-            ? "BZ1 Game Watcher (read-only)"
-            : _options.PlayerName.Trim();
+        var playerName = ObserverName;
 
         foreach (var update in new[]
                  {

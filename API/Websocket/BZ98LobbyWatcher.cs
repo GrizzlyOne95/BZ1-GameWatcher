@@ -74,7 +74,7 @@ namespace BZAPI.Websocket
                 _connectionState.MarkConnected();
                 _logger.LogInformation("Websocket connected ({ReconnectionType}); authorising.", info.Type);
                 _bot.OnSocketConnected();
-                SendAuthorization(client);
+                SendAuthorization(client, _options.PlayerName);
             });
 
             using var disconnections = client.DisconnectionHappened.Subscribe(info =>
@@ -282,22 +282,13 @@ namespace BZAPI.Websocket
             }
         }
 
-        private static void SendAuthorization(IWebsocketClient client)
-        {
-            var message = new WebsocketAuthMessage
-            {
-                Type = "Authorization",
-                Content = new WebsocketAuthMessageContent
-                {
-                    AuthType = "web",
-                    Key = string.Empty,
-                    Id = "0",
-                    ApiVer = "0.0"
-                }
-            };
-
-            client.Send(JsonConvert.SerializeObject(message));
-        }
+        /// <summary>
+        /// The lounge watcher holds a permanent Web session, so it is a visible account like any
+        /// other. It declares its name here rather than staying an anonymous <c>unknown</c> entry
+        /// in the lounge roster.
+        /// </summary>
+        private static void SendAuthorization(IWebsocketClient client, string? playerName) =>
+            client.Send(BzrNetAuthorization.Serialize(playerName));
 
         private static void EnterLounge(IWebsocketClient client)
         {
