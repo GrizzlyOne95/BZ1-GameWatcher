@@ -63,6 +63,7 @@ The API reads settings from `API/appsettings.json`, environment variables, and .
 | `MapMetadata:BaseUrl` | `MapMetadata__BaseUrl` | Public BZ98R map metadata root used for map titles, previews, player ranges, and actual game modes. Empty disables map enrichment without affecting live lobby data. |
 | `Cors:AllowedOrigins` | `Cors__AllowedOrigins__0` | Origins allowed to call the API directly. Not needed when the UI and API are same-origin. |
 | `Battlezone:LobbyServerUrl` | `Battlezone__LobbyServerUrl` | WebSocket endpoint of the lobby server. |
+| `Battlezone:PlayerName` | `Battlezone__PlayerName` | Public name the lounge watcher declares to the lobby server. Empty connects anonymously. |
 | `Battlezone:ProxyUrl` | `Battlezone__ProxyUrl` | Optional HTTP/HTTPS/SOCKS5 proxy used only by BZRNet WebSockets. Keep credentials in host-local configuration. |
 | `Battlezone:FlaggedSteamIds` | `Battlezone__FlaggedSteamIds__0` | Steam IDs marked with `isDangerous` in API responses. Empty by default. |
 | `Activity:Enabled` | `Activity__Enabled` | Enables privacy-safe aggregate multiplayer sampling. |

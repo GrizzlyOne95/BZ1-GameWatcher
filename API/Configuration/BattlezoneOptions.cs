@@ -19,6 +19,13 @@ namespace BZAPI.Configuration
         public string ProxyUrl { get; set; } = string.Empty;
 
         /// <summary>
+        /// Public name declared by the lounge watcher's own Web session. The watcher is a visible
+        /// account on the lobby server for as long as it runs, so it identifies itself rather than
+        /// appearing as an anonymous <c>unknown</c> entry. Set to empty to connect anonymously.
+        /// </summary>
+        public string PlayerName { get; set; } = "BZ1 Game Watcher";
+
+        /// <summary>
         /// Reconnect if no message has been received for this long. Acts as a watchdog for a
         /// connection that is open but no longer receiving updates, which would otherwise leave
         /// the API serving stale lobbies indefinitely.

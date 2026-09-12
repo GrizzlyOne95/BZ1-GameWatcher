@@ -6,6 +6,12 @@ The Game Watcher implementation was cross-checked against the public Rebellion a
 
 `authType` is authoritative for platform classification (`steam`, `gog`, `web`). ID prefixes are used only for platform-specific enrichment, such as extracting a Steam64 ID. A Web account such as `B1000002` remains Web even though its identifier does not begin with `S`. The public API continues to omit IP, WAN, and LAN address fields.
 
+## Declaring a player name
+
+A Web session's top-level `name` comes from the `Authorization` content, not from `SetPlayerData`. `SetPlayerData` writes the user's metadata bag: sending `{"key":"name", ...}` after authorizing leaves the roster's `Name` column empty (rendered `unknown`) and omits the account from the lobby `userPack`, while the value shows up in the metadata column instead. The giveaway is that `authType` sent the same way also lands in metadata rather than setting the real field.
+
+Accounts that do display a name — the community `!BRIDGE` bridge, and `Battlezone_LobbyMonitor` — put `name` and `playerName` in the `Authorization` content at connect time. Game Watcher now does the same and keeps the `SetPlayerData` updates as well, so both representations of the user agree.
+
 ## Lobby name envelope
 
 The upstream metadata name uses five `~`-separated fields: empty prefix, lobby type, visibility, password marker, and friendly name. Game Watcher retains the raw envelope for diagnostics and exposes only a nullable `hasPassword` boolean; it never exposes the upstream password value.
