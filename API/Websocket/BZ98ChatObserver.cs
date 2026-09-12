@@ -28,9 +28,7 @@ public sealed class BZ98ChatObserver : BackgroundService
     private readonly ILogger<BZ98ChatObserver> _logger;
     private readonly TimeProvider _timeProvider;
     private readonly Dictionary<int, ObserverSession> _observers = [];
-    private readonly object _attemptGate = new();
-    private readonly Queue<DateTimeOffset> _connectionAttempts = [];
-    private DateTimeOffset? _circuitOpenUntil;
+    private readonly ChatObserverConnectionBudget _connectionBudget;
 
     // LobbyStore already publishes a synchronous change event. Coalescing it through a bounded
     // channel keeps the event handler non-blocking and lets the background service reconcile only
@@ -57,6 +55,7 @@ public sealed class BZ98ChatObserver : BackgroundService
         _options = options.Value;
         _logger = logger;
         _timeProvider = timeProvider;
+        _connectionBudget = new ChatObserverConnectionBudget(_options);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -204,9 +203,8 @@ public sealed class BZ98ChatObserver : BackgroundService
                 // Every socket creation, initial or replacement, consumes one slot from the
                 // process-wide budget. When the budget is exhausted the circuit opens and this
                 // session waits it out instead of creating sockets.
-                if (!TryReserveConnectionSlot())
+                if (!_connectionBudget.TryReserve(_timeProvider.GetUtcNow(), out var circuitWait))
                 {
-                    var circuitWait = GetCircuitWait();
                     _logger.LogError(
                         "Read-only chat observer connection budget exhausted; {LobbyName} ({LobbyId}) waits {Wait} before creating its next socket.",
                         lobbyName,
@@ -223,13 +221,16 @@ public sealed class BZ98ChatObserver : BackgroundService
                 // recreate sockets on its own schedule, which cannot respect the process-wide
                 // connection budget. This loop creates each replacement socket itself after
                 // ReconnectDelay, and each creation reserves another budget slot.
-                using (var client = new WebsocketClient(new Uri(_battlezone.LobbyServerUrl))
-                       {
-                           ReconnectTimeout = null,
-                           ErrorReconnectTimeout = null,
-                           LostReconnectTimeout = null
-                       })
+                try
                 {
+                    using var client = new WebsocketClient(new Uri(_battlezone.LobbyServerUrl))
+                    {
+                        IsReconnectionEnabled = false,
+                        ReconnectTimeout = null,
+                        ErrorReconnectTimeout = null,
+                        LostReconnectTimeout = null
+                    };
+
                     bool SendOrEnd(IWebsocketClient target, object payload, string action)
                     {
                         try
@@ -251,7 +252,7 @@ public sealed class BZ98ChatObserver : BackgroundService
 
                         // Send failures open the circuit: retrying against a rejecting or
                         // broken peer is what the budget exists to prevent.
-                        OpenCircuit();
+                        _connectionBudget.OpenCircuit(_timeProvider.GetUtcNow());
                         sessionEnded.TrySetResult();
                         return false;
                     }
@@ -318,7 +319,7 @@ public sealed class BZ98ChatObserver : BackgroundService
                                             _options.CircuitOpenDuration);
                                         // Authorization rejections open the circuit: retrying with
                                         // the same credentials would only consume budget.
-                                        OpenCircuit();
+                                        _connectionBudget.OpenCircuit(_timeProvider.GetUtcNow());
                                         sessionEnded.TrySetResult();
                                         return;
                                     }
@@ -359,7 +360,7 @@ public sealed class BZ98ChatObserver : BackgroundService
                                             lobbyId,
                                             payload?["reason"]?.ToString(),
                                             _options.CircuitOpenDuration);
-                                        OpenCircuit();
+                                        _connectionBudget.OpenCircuit(_timeProvider.GetUtcNow());
                                         sessionEnded.TrySetResult();
                                     }
                                     break;
@@ -379,26 +380,23 @@ public sealed class BZ98ChatObserver : BackgroundService
                                 "Ignoring malformed chat-observer message for lobby {LobbyId}.",
                                 lobbyId);
                         }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(
+                                ex,
+                                "Read-only chat observer protocol handling failed for {LobbyName} ({LobbyId}); opening the circuit.",
+                                lobbyName,
+                                lobbyId);
+                            _connectionBudget.OpenCircuit(_timeProvider.GetUtcNow());
+                            sessionEnded.TrySetResult();
+                        }
                     });
 
-                    await client.Start();
-
-                    if (!client.IsStarted)
-                    {
-                        _logger.LogWarning(
-                            "Read-only chat observer could not connect to {LobbyName} ({LobbyId}); retry is delayed by {ReconnectDelay}.",
-                            lobbyName,
-                            lobbyId,
-                            reconnectDelay);
-                        sessionEnded.TrySetResult();
-                    }
-                    else
-                    {
-                        _logger.LogInformation(
-                            "Read-only chat observer socket for {LobbyName} ({LobbyId}) is live.",
-                            lobbyName,
-                            lobbyId);
-                    }
+                    await client.StartOrFail();
+                    _logger.LogInformation(
+                        "Read-only chat observer socket for {LobbyName} ({LobbyId}) is live.",
+                        lobbyName,
+                        lobbyId);
 
                     // Stay on this socket until it disconnects, the protocol rejects the session,
                     // or the application shuts down. The wait is cancellable so shutdown never
@@ -411,6 +409,15 @@ public sealed class BZ98ChatObserver : BackgroundService
                     {
                         // Normal observer shutdown; client disposal below closes the socket.
                     }
+                }
+                catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "Read-only chat observer connection attempt failed for {LobbyName} ({LobbyId}); retry is delayed by {ReconnectDelay}.",
+                        lobbyName,
+                        lobbyId,
+                        reconnectDelay);
                 }
 
                 _chat.SetObserverUserId(lobbyId, null);
@@ -436,70 +443,6 @@ public sealed class BZ98ChatObserver : BackgroundService
         finally
         {
             _chat.SetObserverUserId(lobbyId, null);
-        }
-    }
-
-    /// <summary>
-    /// Reserves one socket-creation slot from the process-wide budget. Opens the circuit
-    /// breaker when the sliding window is exhausted; the circuit then blocks every room.
-    /// </summary>
-    private bool TryReserveConnectionSlot()
-    {
-        lock (_attemptGate)
-        {
-            var now = _timeProvider.GetUtcNow();
-            var window = _options.ConnectionAttemptWindow;
-
-            while (_connectionAttempts.Count > 0 && now - _connectionAttempts.Peek() > window)
-            {
-                _connectionAttempts.Dequeue();
-            }
-
-            if (_circuitOpenUntil is { } openUntil && now < openUntil)
-            {
-                return false;
-            }
-
-            _circuitOpenUntil = null;
-
-            if (window > TimeSpan.Zero &&
-                _connectionAttempts.Count >= _options.MaxConnectionAttemptsPerWindow)
-            {
-                _circuitOpenUntil = now + _options.CircuitOpenDuration;
-                _logger.LogWarning(
-                    "Chat observer made {Attempts} socket attempts in {Window}; circuit open until {OpenUntil}.",
-                    _connectionAttempts.Count,
-                    window,
-                    _circuitOpenUntil);
-                return false;
-            }
-
-            _connectionAttempts.Enqueue(now);
-            return true;
-        }
-    }
-
-    /// <summary>How long a budget-blocked session should wait before asking again.</summary>
-    private TimeSpan GetCircuitWait()
-    {
-        lock (_attemptGate)
-        {
-            var now = _timeProvider.GetUtcNow();
-            if (_circuitOpenUntil is { } openUntil && openUntil > now)
-            {
-                return openUntil - now;
-            }
-
-            return TimeSpan.FromMinutes(1);
-        }
-    }
-
-    /// <summary>Opens the circuit for protocol-level rejections (auth, join, send).</summary>
-    private void OpenCircuit()
-    {
-        lock (_attemptGate)
-        {
-            _circuitOpenUntil = _timeProvider.GetUtcNow() + _options.CircuitOpenDuration;
         }
     }
 
