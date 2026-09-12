@@ -13,6 +13,12 @@ namespace BZAPI.Configuration
         public string LobbyServerUrl { get; set; } = "ws://battlezone98mp.webdev.rebellion.co.uk:1337/";
 
         /// <summary>
+        /// Optional HTTP or SOCKS5 proxy used only for outbound BZRNet websocket connections.
+        /// Keep credentials out of source-controlled settings and never log this value.
+        /// </summary>
+        public string ProxyUrl { get; set; } = string.Empty;
+
+        /// <summary>
         /// Reconnect if no message has been received for this long. Acts as a watchdog for a
         /// connection that is open but no longer receiving updates, which would otherwise leave
         /// the API serving stale lobbies indefinitely.

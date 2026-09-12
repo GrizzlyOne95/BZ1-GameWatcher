@@ -16,4 +16,8 @@
     <PackageReference Include="Websocket.Client" Version="5.1.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="API.Tests" />
+  </ItemGroup>
+
 </Project>
