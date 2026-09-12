@@ -223,13 +223,13 @@ public sealed class BZ98ChatObserver : BackgroundService
                 // ReconnectDelay, and each creation reserves another budget slot.
                 try
                 {
-                    using var client = new WebsocketClient(new Uri(_battlezone.LobbyServerUrl))
-                    {
-                        IsReconnectionEnabled = false,
-                        ReconnectTimeout = null,
-                        ErrorReconnectTimeout = null,
-                        LostReconnectTimeout = null
-                    };
+                    using var client = BzrNetWebsocketClient.Create(
+                        new Uri(_battlezone.LobbyServerUrl),
+                        _battlezone);
+                    client.IsReconnectionEnabled = false;
+                    client.ReconnectTimeout = null;
+                    client.ErrorReconnectTimeout = null;
+                    client.LostReconnectTimeout = null;
 
                     bool SendOrEnd(IWebsocketClient target, object payload, string action)
                     {

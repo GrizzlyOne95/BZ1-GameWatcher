@@ -56,13 +56,14 @@ namespace BZAPI.Websocket
         {
             var url = new Uri(_options.LobbyServerUrl);
 
-            _logger.LogInformation("Connecting to lobby server at {LobbyServerUrl}.", url);
+            _logger.LogInformation(
+                "Connecting to lobby server at {LobbyServerUrl}; proxy configured={ProxyConfigured}.",
+                url,
+                !string.IsNullOrWhiteSpace(_options.ProxyUrl));
 
-            using var client = new WebsocketClient(url)
-            {
-                ReconnectTimeout = _options.StaleConnectionTimeout,
-                ErrorReconnectTimeout = _options.ErrorReconnectTimeout
-            };
+            using var client = BzrNetWebsocketClient.Create(url, _options);
+            client.ReconnectTimeout = _options.StaleConnectionTimeout;
+            client.ErrorReconnectTimeout = _options.ErrorReconnectTimeout;
 
             // Authorisation has to be re-sent on *every* connection, not just the first. Previously
             // it was sent once after Start(), so after any reconnect the socket was open but
